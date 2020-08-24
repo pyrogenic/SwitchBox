@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Users/josh/Library/Arduino15/packages/Seeeduino/tools/**",
+                "/Users/josh/Library/Arduino15/packages/Seeeduino/hardware/samd/1.7.8/**"
+            ],
+            "forcedInclude": [
+                "/Users/josh/Library/Arduino15/packages/Seeeduino/hardware/samd/1.7.8/cores/arduino/Arduino.h"
+            ],
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ],
+            "intelliSenseMode": "clang-x64",
+            "compilerPath": "/usr/local/bin/arm-none-eabi-gcc",
+            "cStandard": "c11",
+            "cppStandard": "gnu++14"
+        }
+    ],
+    "version": 4
+}

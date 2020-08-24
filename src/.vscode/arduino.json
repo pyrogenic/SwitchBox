@@ -1,0 +1,7 @@
+{
+    "programmer": "AVR ISP",
+    "board": "Seeeduino:samd:seeed_XIAO_m0",
+    "configuration": "usbstack=tinyusb,debug=off",
+    "port": "/dev/tty.usbmodemFD12131",
+    "sketch": "RotaryEncoder2.ino"
+}
