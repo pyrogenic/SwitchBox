@@ -27,13 +27,9 @@ DisplaySSD1306_128x64_I2C display(-1); // This line is suitable fo
 #define ROTARY_PIN_BUTTON 10
 
 SAppMenu menu;
-#define MENU_ITEM_COUNT (3)
-char * const menuItems[MENU_ITEM_COUNT] =
-{
-  "  Phonograph",
-  "  Digital",
-  "  Bluetooth",
-};
+#define MENU_ITEM_COUNT (9)
+char * menuItems[MENU_ITEM_COUNT] = {0};
+
 #define BAR_TOP (58)
 
 RotaryState rotaryState;
@@ -48,6 +44,19 @@ void setup() {
   display.begin();
   display.clear();
   NanoRect menuRect = {0, 16, 128, BAR_TOP - 2};
+  
+  for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
+    menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
+  }
+  strcpy(menuItems[0], "  Analog");
+  strcpy(menuItems[1], "  Digital");
+  strcpy(menuItems[2], "  ");
+  strcpy(menuItems[3], "  Loki");
+  strcpy(menuItems[4], "  Valhalla");
+  strcpy(menuItems[5], "  ");
+  strcpy(menuItems[6], "  Speakers");
+  strcpy(menuItems[7], "  Geshelli");
+  
   display.createMenu( &menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect);
 
   rotary_setup(rotaryState);
@@ -70,13 +79,13 @@ void loop() {
   display.showMenuSmooth(&menu);
   RotaryAction action = rotary_loop(rotaryState);
   if (action) {
-    debug_set("Action: %d %s", action,
-              action == kRotaryActionWiddershinsUp ? "WiddershinsUp" :
-              action == kRotaryActionWiddershinsDown ? "WiddershinsDown" :
-              action == kRotaryActionNone ? "None" :
-              action == kRotaryActionClockwiseDown ? "ClockwiseDown" :
-              action == kRotaryActionClockwiseUp ? "ClockwiseUp" :
-              action == kRotaryActionClick ? "Click" : "?");
+    // debug_set("Action: %d %s", action,
+    //           action == kRotaryActionWiddershinsUp ? "WiddershinsUp" :
+    //           action == kRotaryActionWiddershinsDown ? "WiddershinsDown" :
+    //           action == kRotaryActionNone ? "None" :
+    //           action == kRotaryActionClockwiseDown ? "ClockwiseDown" :
+    //           action == kRotaryActionClockwiseUp ? "ClockwiseUp" :
+    //           action == kRotaryActionClick ? "Click" : "?");
     switch (action) {
       case kRotaryActionClick:
         if (activeOutput != menu.selection) {
@@ -98,10 +107,10 @@ void loop() {
   }
 
   if (menuDirty) {
-    //    for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
-    //      char c = i == activeOutput ? '*' : ' ';
-    //      menuItems[i][0] = c;
-    //    }
+    for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
+      char c = i == activeOutput ? '*' : ' ';
+      menuItems[i][0] = c;
+    }
     //    NanoRect rect = {0, 0, 128, 32};
     //    display.setColor(BLACK);
     //    display.fillRect(rect);
@@ -127,6 +136,6 @@ void loop() {
     display.setFixedFont(ssd1306xled_font6x8);
     display.printFixed(0, 0, debug_get(), STYLE_NORMAL);
   }
-  digitalWrite(RELAY_1, activeOutput == 1);
-  digitalWrite(RELAY_2, activeOutput == 2);
+  digitalWrite(RELAY_1, activeOutput == 1 ? HIGH : LOW);
+  digitalWrite(RELAY_2, activeOutput == 2 ? HIGH : LOW);
 }
