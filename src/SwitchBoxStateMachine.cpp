@@ -13,6 +13,7 @@ void state_output_a_on_state();
 void state_output_b_on_state();
 void state_output_c_on_enter();
 void state_output_c_on_state();
+void state_output_c_on_exit();
 
 // fsm states
 // define states with FunctionState state(&func_on_state_state, &func_in_state,
@@ -26,7 +27,7 @@ FunctionState state_valhalla_preamp_bypass_locked(nullptr, &state_valhalla_pream
 FunctionState state_valhalla_preamp_engage_locked(nullptr, &state_valhalla_preamp_bypass_on_state, nullptr);
 FunctionState state_output_a(nullptr, &state_output_a_on_state, nullptr);
 FunctionState state_output_b(nullptr, &state_output_b_on_state, nullptr);
-FunctionState state_output_c(&state_output_c_on_enter, &state_output_c_on_state, nullptr);
+FunctionState state_output_c(&state_output_c_on_enter, &state_output_c_on_state, &state_output_c_on_exit);
 
 std::map<FunctionFsm *, const std::string> stateMachineNames;
 std::map<FunctionState *, const std::string> stateNames;
@@ -36,7 +37,7 @@ std::map<Trigger, const std::string> triggerNames;
 // define the fsm with the state it will start in
 FunctionFsm fsm_input(&state_input_a);
 FunctionFsm fsm_valhalla(&state_valhalla_preamp_bypass);
-FunctionFsm fsm_output(&state_input_a);
+FunctionFsm fsm_output(&state_output_a);
 // You can run as many state machines as you'd like
 
 void sbsm_trigger(Trigger event) {
@@ -140,18 +141,25 @@ void sbsm_setup() {
   fsm_valhalla.add_transition(&state_valhalla_preamp_engage_locked, &state_valhalla_preamp_engage, kTriggerValhallaOutputUnlocked, nullptr);
 
   fsm_output.add_transition(&state_output_a, &state_output_b, kTriggerToggleOutput, nullptr);
+  fsm_output.add_transition(&state_output_b, &state_output_c, kTriggerToggleOutput, nullptr);
+  fsm_output.add_transition(&state_output_c, &state_output_a, kTriggerToggleOutput, nullptr);
+
   fsm_output.add_transition(&state_output_b, &state_output_a, kTriggerSelectOutputA, nullptr);
   fsm_output.add_transition(&state_output_c, &state_output_a, kTriggerSelectOutputA, nullptr);
+
   fsm_output.add_transition(&state_output_a, &state_output_b, kTriggerSelectOutputB, nullptr);
-  fsm_output.add_transition(&state_output_b, &state_output_b, kTriggerToggleOutput, nullptr);
   fsm_output.add_transition(&state_output_c, &state_output_b, kTriggerSelectOutputB, nullptr);
+
   fsm_output.add_transition(&state_output_a, &state_output_c, kTriggerSelectOutputC, nullptr);
   fsm_output.add_transition(&state_output_b, &state_output_c, kTriggerSelectOutputC, nullptr);
-  fsm_output.add_transition(&state_output_c, &state_output_a, kTriggerToggleOutput, nullptr);
 }
 
 void sbsm_loop() {
+  Serial.println();
   for (auto fsm : stateMachineNames) {
-    fsm.first->run_machine();
+    FunctionFsm *machine = fsm.first;
+    const std::string &currentStateName = stateNames.at(&machine->get_current_state());
+    Serial.printf("\t%s: %s", fsm.second.c_str(), currentStateName.c_str());
+    machine->run_machine();
   }
 }
