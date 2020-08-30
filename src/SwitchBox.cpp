@@ -8,33 +8,39 @@
   http://www.arduino.cc/en/Tutorial/DigitalReadSerial
 */
 
-#include <lcdgfx.h>
-#include "DebugLine.h"
-#include "Debounce.h"
-#include "RotaryEncoder.h"
 #include "SwitchBox.h"
+#include "Debounce.h"
+#include "DebugLine.h"
+#include "RotaryEncoder.h"
+#include "SwitchBoxStateMachine.h"
+#include <lcdgfx.h>
 
-DisplaySSD1306_128x64_I2C display(-1); // This line is suitable fo
+DisplaySSD1306_128x64_I2C display(-1);
 
 SAppMenu menu;
 #define MENU_ITEM_COUNT (12)
-char * menuItems[MENU_ITEM_COUNT] = {0};
+char *menuItems[MENU_ITEM_COUNT] = {0};
+//#define BAR_TOP (58)
+NanoRect menuRect = {0, 16, 128, 64};
 
-#define BAR_TOP (58)
+// int activeOutput = 0;
 
+// the setup routine runs once when you press reset
 RotaryState rotaryState;
-int activeOutput = 0;
-
-// the setup routine runs once when you press reset:
 void setup() {
+  display.begin();
+  display.clear();
+
+  pinMode(RELAY_INPUT, OUTPUT);
+  pinMode(RELAY_VALHALLA, OUTPUT);
+  pinMode(RELAY_OUTPUT_A, OUTPUT);
+  pinMode(RELAY_OUTPUT_B, OUTPUT);
+
   rotaryState.pinA.pin = ROTARY_PIN_A;
   rotaryState.pinB.pin = ROTARY_PIN_B;
   rotaryState.pinSwitch.pin = ROTARY_PIN_BUTTON;
+  rotary_setup(rotaryState);
 
-  display.begin();
-  display.clear();
-  NanoRect menuRect = {0, 16, 128, BAR_TOP - 2};
-  
   for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
     menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
   }
@@ -48,20 +54,16 @@ void setup() {
   strcpy(menuItems[7], "SelectOutputA");
   strcpy(menuItems[8], "SelectOutputB");
   strcpy(menuItems[9], "SelectOutputC");
-  strcpy(menuItems[10], "ValhallaBecamePreamp");
-  strcpy(menuItems[11], "ValhallaBecameOutput");
+  strcpy(menuItems[10], "ValhallaOutputLocked");
+  strcpy(menuItems[11], "ValhallaOutputUnlocked");
 
-  display.createMenu( &menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect);
+  display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect);
 
-  rotary_setup(rotaryState);
+  sbsm_setup();
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
-
-  pinMode(RELAY_INPUT, OUTPUT);
-  pinMode(RELAY_VALHALLA, OUTPUT);
-  pinMode(RELAY_OUTPUT_A, OUTPUT);
-  pinMode(RELAY_OUTPUT_B, OUTPUT);
+  Serial.println("Good morning!");
 }
 
 int encoderPosCount = 0;
@@ -71,7 +73,8 @@ bool menuUpdate = true;
 char lastDebug[256] = {0};
 // the loop routine runs over and over again forever:
 void loop() {
-  display.setFixedFont( ssd1306xled_font6x8 );
+  sbsm_loop();
+  display.setFixedFont(ssd1306xled_font6x8);
   display.showMenuSmooth(&menu);
   RotaryAction action = rotary_loop(rotaryState);
   if (action) {
@@ -83,30 +86,35 @@ void loop() {
     //           action == kRotaryActionClockwiseUp ? "ClockwiseUp" :
     //           action == kRotaryActionClick ? "Click" : "?");
     switch (action) {
-      case kRotaryActionClick:
-        if (activeOutput != menu.selection) {
-          activeOutput = menu.selection;
-          menuDirty = true;
-        }
-        break;
-      case kRotaryActionWiddershinsUp:
-        display.menuUp(&menu);
-        menuUpdate = true;
-        break;
-      case kRotaryActionClockwiseUp:
-        display.menuDown(&menu);
-        menuUpdate = true;
-        break;
-      default:
-        break;
+    case kRotaryActionClick: {
+      Trigger event = (Trigger)menu.selection;
+      sbsm_trigger(event);
+      Serial.print("Select: ");
+      Serial.println(triggerNames.at(event).c_str());
+      // if (activeOutput != menu.selection) {
+      //   //activeOutput = menu.selection;
+      //   //menuDirty = true;
+      // }
+      break;
+    }
+    case kRotaryActionWiddershinsUp:
+      display.menuUp(&menu);
+      menuUpdate = true;
+      break;
+    case kRotaryActionClockwiseUp:
+      display.menuDown(&menu);
+      menuUpdate = true;
+      break;
+    default:
+      break;
     }
   }
-// 
+  //
   if (menuDirty) {
-    for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
-      char c = i == activeOutput ? '*' : ' ';
-      menuItems[i][0] = c;
-    }
+    // for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
+    //   char c = i == activeOutput ? '*' : ' ';
+    //   menuItems[i][0] = c;
+    // }
     //    NanoRect rect = {0, 0, 128, 32};
     //    display.setColor(BLACK);
     //    display.fillRect(rect);
@@ -114,10 +122,10 @@ void loop() {
     //    int len = strlen(debug_get());
     //    int x = (16 - len) / 2;
     //    display.printFixed(x * 8, 0, debug_get(), STYLE_NORMAL);
-    display.setFixedFont( ssd1306xled_font6x8 );
+    display.setFixedFont(ssd1306xled_font6x8);
     display.showMenuSmooth(&menu);
   } else if (menuUpdate) {
-    display.setFixedFont( ssd1306xled_font6x8 );
+    display.setFixedFont(ssd1306xled_font6x8);
     display.updateMenuSmooth(&menu);
   }
 
@@ -132,7 +140,7 @@ void loop() {
     display.setFixedFont(ssd1306xled_font6x8);
     display.printFixed(0, 0, debug_get(), STYLE_NORMAL);
   }
-  digitalWrite(RELAY_INPUT, activeOutput == 1 ? HIGH : LOW);
+  // ;digitalWrite(RELAY_INPUT, activeOutput == 1 ? HIGH : LOW);
   // digitalWrite(RELAY_VALHALLA, activeOutput == 2 ? HIGH : LOW);
   // digitalWrite(RELAY_OUTPUT_A, activeOutput == 2 ? HIGH : LOW);
   // digitalWrite(RELAY_OUTPUT_B, activeOutput == 2 ? HIGH : LOW);

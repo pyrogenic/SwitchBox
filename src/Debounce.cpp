@@ -1,6 +1,6 @@
 #include "Debounce.h"
 
-#include <arduino.h>
+#include <Arduino.h>
 
 bool debounce(ButtonState &buttonState, bool raw) {
   // read the state of the switch into a local variable:
