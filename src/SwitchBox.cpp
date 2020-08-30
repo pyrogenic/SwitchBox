@@ -54,8 +54,10 @@ void setup() {
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
 
-  pinMode(RELAY_1, OUTPUT);
-  pinMode(RELAY_2, OUTPUT);
+  pinMode(RELAY_INPUT, OUTPUT);
+  pinMode(RELAY_VALHALLA, OUTPUT);
+  pinMode(RELAY_OUTPUT_A, OUTPUT);
+  pinMode(RELAY_OUTPUT_B, OUTPUT);
 }
 
 int encoderPosCount = 0;
@@ -126,6 +128,8 @@ void loop() {
     display.setFixedFont(ssd1306xled_font6x8);
     display.printFixed(0, 0, debug_get(), STYLE_NORMAL);
   }
-  digitalWrite(RELAY_1, activeOutput == 1 ? HIGH : LOW);
-  digitalWrite(RELAY_2, activeOutput == 2 ? HIGH : LOW);
+  digitalWrite(RELAY_INPUT, activeOutput == 1 ? HIGH : LOW);
+  // digitalWrite(RELAY_VALHALLA, activeOutput == 2 ? HIGH : LOW);
+  // digitalWrite(RELAY_OUTPUT_A, activeOutput == 2 ? HIGH : LOW);
+  // digitalWrite(RELAY_OUTPUT_B, activeOutput == 2 ? HIGH : LOW);
 }

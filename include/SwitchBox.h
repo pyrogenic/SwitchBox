@@ -12,6 +12,7 @@
 // RELAY_OUTPUT_A switches from SPEAKER to other output options
 #define RELAY_OUTPUT_A 8
 // RELAY_OUTPUT_B switches from GESHELLI to VALHALLA output
+// it also controlls the  HEADPHONE relay
 #define RELAY_OUTPUT_B 9
 // Connected to SW on KY-040
 #define ROTARY_PIN_BUTTON 10
