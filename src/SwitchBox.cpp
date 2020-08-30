@@ -17,7 +17,7 @@
 DisplaySSD1306_128x64_I2C display(-1); // This line is suitable fo
 
 SAppMenu menu;
-#define MENU_ITEM_COUNT (9)
+#define MENU_ITEM_COUNT (12)
 char * menuItems[MENU_ITEM_COUNT] = {0};
 
 #define BAR_TOP (58)
@@ -38,15 +38,19 @@ void setup() {
   for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
     menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
   }
-  strcpy(menuItems[0], "  Analog");
-  strcpy(menuItems[1], "  Digital");
-  strcpy(menuItems[2], "  ");
-  strcpy(menuItems[3], "  Loki");
-  strcpy(menuItems[4], "  Valhalla");
-  strcpy(menuItems[5], "  ");
-  strcpy(menuItems[6], "  Speakers");
-  strcpy(menuItems[7], "  Geshelli");
-  
+  strcpy(menuItems[0], "ToggleInput");
+  strcpy(menuItems[1], "SelectInputA");
+  strcpy(menuItems[2], "SelectInputB");
+  strcpy(menuItems[3], "ToggleValhallaPreamp");
+  strcpy(menuItems[4], "SelectValhallaPreampBypass");
+  strcpy(menuItems[5], "SelectValhallaPreampEngage");
+  strcpy(menuItems[6], "ToggleOutput");
+  strcpy(menuItems[7], "SelectOutputA");
+  strcpy(menuItems[8], "SelectOutputB");
+  strcpy(menuItems[9], "SelectOutputC");
+  strcpy(menuItems[10], "ValhallaBecamePreamp");
+  strcpy(menuItems[11], "ValhallaBecameOutput");
+
   display.createMenu( &menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect);
 
   rotary_setup(rotaryState);

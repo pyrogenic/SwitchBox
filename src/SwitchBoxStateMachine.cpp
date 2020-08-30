@@ -4,7 +4,7 @@
 #include "SwitchBox.h"
 
 //fsm triggers
-enum Trigger {
+typedef enum Trigger {
   kTriggerToggleInput,
   kTriggerSelectInputA,
   kTriggerSelectInputB,
@@ -19,8 +19,7 @@ enum Trigger {
   kTriggerSelectOutputC,
 
   kTriggerValhallaBecamePreamp,
-  kTriggerValhallaBecameOutput,
-  //You can add more triggers here...
+  kTriggerValhallaBecameOutput
 };
 
 typedef struct
@@ -115,6 +114,7 @@ void initfsm() {
   fsm_valhalla.add_transition(&state_valhalla_preamp_bypass, &state_valhalla_preamp_engage, kTriggerSelectValhallaPreampEngage, nullptr);
   fsm_valhalla.add_transition(&state_valhalla_preamp_engage, &state_valhalla_preamp_bypass, kTriggerToggleValhallaPreamp, nullptr);
   fsm_valhalla.add_transition(&state_valhalla_preamp_engage, &state_valhalla_preamp_bypass, kTriggerSelectValhallaPreampBypass, nullptr);
+  fsm_valhalla.add_transition(&state_valhalla_preamp_engage, &state_valhalla_preamp_bypass, kTriggerValhallaBecameOutput, nullptr);
 
   fsm_output.add_transition(&state_output_a, &state_output_b, kTriggerToggleOutput, nullptr);
   fsm_output.add_transition(&state_output_b, &state_output_a, kTriggerSelectOutputA, nullptr);

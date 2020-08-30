@@ -1,4 +1,4 @@
-#include <arduino.h>
+#include <Arduino.h>
 #include "DebugLine.h"
 #include "RotaryEncoder.h"
 
