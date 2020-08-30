@@ -12,19 +12,9 @@
 #include "DebugLine.h"
 #include "Debounce.h"
 #include "RotaryEncoder.h"
+#include "SwitchBox.h"
 
 DisplaySSD1306_128x64_I2C display(-1); // This line is suitable fo
-
-// 0, 1 don't seem to work with UNO
-// Connected to CLK on KY-040
-#define ROTARY_PIN_A 2
-// Connected to DT on KY-040
-#define ROTARY_PIN_B 3
-// 4, 5 used by OLED on XIAO as A4/A5
-#define RELAY_1 8
-#define RELAY_2 9
-// Connected to SW on KY-040
-#define ROTARY_PIN_BUTTON 10
 
 SAppMenu menu;
 #define MENU_ITEM_COUNT (9)
@@ -105,7 +95,7 @@ void loop() {
         break;
     }
   }
-
+// 
   if (menuDirty) {
     for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
       char c = i == activeOutput ? '*' : ' ';
