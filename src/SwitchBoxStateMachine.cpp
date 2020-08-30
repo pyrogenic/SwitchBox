@@ -2,8 +2,6 @@
 #include "SwitchBox.h"
 #include <Arduino.h>
 
-SwitchBoxState publicState = {};
-
 void state_input_a_on_state();
 void state_input_b_on_state();
 void state_valhalla_preamp_bypass_on_state();
@@ -29,16 +27,19 @@ FunctionState state_output_a(nullptr, &state_output_a_on_state, nullptr);
 FunctionState state_output_b(nullptr, &state_output_b_on_state, nullptr);
 FunctionState state_output_c(&state_output_c_on_enter, &state_output_c_on_state, &state_output_c_on_exit);
 
-std::map<FunctionFsm *, const std::string> stateMachineNames;
-std::map<FunctionState *, const std::string> stateNames;
-std::map<Trigger, const std::string> triggerNames;
-
-// fsm
 // define the fsm with the state it will start in
 FunctionFsm fsm_input(&state_input_a);
 FunctionFsm fsm_valhalla(&state_valhalla_preamp_bypass);
 FunctionFsm fsm_output(&state_output_a);
-// You can run as many state machines as you'd like
+
+std::map<FunctionFsm *, const std::string> stateMachineNames;
+std::map<FunctionState *, const std::string> stateNames;
+std::map<Trigger, const std::string> triggerNames;
+
+const std::string &sbsm_trigger_name(const Trigger event) { return triggerNames.at(event); }
+const std::string &sbsm_input_label() { return stateNames.at(&fsm_input.get_current_state()); }
+const std::string &sbsm_preamp_label() { return stateNames.at(&fsm_valhalla.get_current_state()); }
+const std::string &sbsm_output_label() { return stateNames.at(&fsm_output.get_current_state()); }
 
 void sbsm_trigger(Trigger event) {
   fsm_input.trigger(event);

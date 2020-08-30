@@ -27,15 +27,15 @@ enum Trigger {
   kTriggerValhallaOutputUnlocked
 };
 
-typedef struct {
-  std::string inputLabel;
-} SwitchBoxState;
-
 extern std::map<FunctionFsm *, const std::string> stateMachineNames;
 extern std::map<FunctionState *, const std::string> stateNames;
 extern std::map<Trigger, const std::string> triggerNames;
-extern SwitchBoxState publicState;
+
 const std::string &sbsm_trigger_name(const Trigger event);
+const std::string &sbsm_input_label();
+const std::string &sbsm_preamp_label();
+const std::string &sbsm_output_label();
+
 void sbsm_setup();
 void sbsm_loop();
 void sbsm_trigger(Trigger state);

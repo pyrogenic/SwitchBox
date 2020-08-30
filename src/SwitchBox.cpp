@@ -67,34 +67,22 @@ void setup() {
 }
 
 int encoderPosCount = 0;
-bool menuDirty = true;
+// bool menuDirty = true;
 bool menuUpdate = true;
 
 char lastDebug[256] = {0};
+char lastLabel[256] = {0};
 // the loop routine runs over and over again forever:
 void loop() {
   sbsm_loop();
-  display.setFixedFont(ssd1306xled_font6x8);
-  display.showMenuSmooth(&menu);
   RotaryAction action = rotary_loop(rotaryState);
   if (action) {
-    // debug_set("Action: %d %s", action,
-    //           action == kRotaryActionWiddershinsUp ? "WiddershinsUp" :
-    //           action == kRotaryActionWiddershinsDown ? "WiddershinsDown" :
-    //           action == kRotaryActionNone ? "None" :
-    //           action == kRotaryActionClockwiseDown ? "ClockwiseDown" :
-    //           action == kRotaryActionClockwiseUp ? "ClockwiseUp" :
-    //           action == kRotaryActionClick ? "Click" : "?");
     switch (action) {
     case kRotaryActionClick: {
       Trigger event = (Trigger)menu.selection;
       sbsm_trigger(event);
       Serial.print("Select: ");
       Serial.println(triggerNames.at(event).c_str());
-      // if (activeOutput != menu.selection) {
-      //   //activeOutput = menu.selection;
-      //   //menuDirty = true;
-      // }
       break;
     }
     case kRotaryActionWiddershinsUp:
@@ -109,39 +97,42 @@ void loop() {
       break;
     }
   }
-  //
-  if (menuDirty) {
-    // for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
-    //   char c = i == activeOutput ? '*' : ' ';
-    //   menuItems[i][0] = c;
-    // }
-    //    NanoRect rect = {0, 0, 128, 32};
-    //    display.setColor(BLACK);
-    //    display.fillRect(rect);
-    //    display.setFixedFont( ssd1306xled_font8x16);
-    //    int len = strlen(debug_get());
-    //    int x = (16 - len) / 2;
-    //    display.printFixed(x * 8, 0, debug_get(), STYLE_NORMAL);
-    display.setFixedFont(ssd1306xled_font6x8);
-    display.showMenuSmooth(&menu);
-  } else if (menuUpdate) {
+  // if (menuDirty) {
+  // for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
+  //   char c = i == activeOutput ? '*' : ' ';
+  //   menuItems[i][0] = c;
+  // }
+  //    NanoRect rect = {0, 0, 128, 32};
+  //    display.setColor(BLACK);
+  //    display.fillRect(rect);
+  //    display.setFixedFont( ssd1306xled_font8x16);
+  //    int len = strlen(debug_get());
+  //    int x = (16 - len) / 2;
+  //    display.printFixed(x * 8, 0, debug_get(), STYLE_NORMAL);
+  //   display.setFixedFont(ssd1306xled_font6x8);
+  //   display.showMenuSmooth(&menu);
+  // } else
+  if (menuUpdate) {
     display.setFixedFont(ssd1306xled_font6x8);
     display.updateMenuSmooth(&menu);
   }
-
-  menuDirty = false;
   menuUpdate = false;
-
+  char label[33] = {0};
+  snprintf(label, 32, "%s > %s > %s", sbsm_input_label().c_str(), sbsm_preamp_label().c_str(), sbsm_output_label().c_str());
+  if (strcmp(lastLabel, label)) {
+    strcpy(lastLabel, label);
+    NanoRect rect = {0, 0, 128, 8};
+    display.setColor(BLACK);
+    display.fillRect(rect);
+    display.setFixedFont(ssd1306xled_font6x8);
+    display.printFixed(0, 0, label, STYLE_NORMAL);
+  }
   if (strcmp(lastDebug, debug_get())) {
     strcpy(lastDebug, debug_get());
-    // NanoRect rect = {0, 0, 128, 16};
-    // display.setColor(BLACK);
-    // display.fillRect(rect);
+    NanoRect rect = {0, 8, 128, 16};
+    display.setColor(BLACK);
+    display.fillRect(rect);
     display.setFixedFont(ssd1306xled_font6x8);
-    display.printFixed(0, 0, debug_get(), STYLE_NORMAL);
+    display.printFixed(0, 8, debug_get(), STYLE_NORMAL);
   }
-  // ;digitalWrite(RELAY_INPUT, activeOutput == 1 ? HIGH : LOW);
-  // digitalWrite(RELAY_VALHALLA, activeOutput == 2 ? HIGH : LOW);
-  // digitalWrite(RELAY_OUTPUT_A, activeOutput == 2 ? HIGH : LOW);
-  // digitalWrite(RELAY_OUTPUT_B, activeOutput == 2 ? HIGH : LOW);
 }
