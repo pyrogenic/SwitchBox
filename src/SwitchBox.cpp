@@ -18,7 +18,7 @@
 DisplaySSD1306_128x64_I2C display(-1);
 
 SAppMenu menu;
-#define MENU_ITEM_COUNT (12)
+#define MENU_ITEM_COUNT (10)
 char *menuItems[MENU_ITEM_COUNT] = {0};
 //#define BAR_TOP (58)
 NanoRect menuRect = {0, 16, 128, 64};
@@ -41,25 +41,14 @@ void setup() {
   rotaryState.pinSwitch.pin = ROTARY_PIN_BUTTON;
   rotary_setup(rotaryState);
 
+  sbsm_setup();
+
   for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
     menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
+    strcpy(menuItems[i], sbsm_trigger_name((Trigger)i).c_str());
   }
-  strcpy(menuItems[0], "ToggleInput");
-  strcpy(menuItems[1], "SelectInputA");
-  strcpy(menuItems[2], "SelectInputB");
-  strcpy(menuItems[3], "ToggleValhallaPreamp");
-  strcpy(menuItems[4], "SelectValhallaPreampBypass");
-  strcpy(menuItems[5], "SelectValhallaPreampEngage");
-  strcpy(menuItems[6], "ToggleOutput");
-  strcpy(menuItems[7], "SelectOutputA");
-  strcpy(menuItems[8], "SelectOutputB");
-  strcpy(menuItems[9], "SelectOutputC");
-  strcpy(menuItems[10], "ValhallaOutputLocked");
-  strcpy(menuItems[11], "ValhallaOutputUnlocked");
 
   display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect);
-
-  sbsm_setup();
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);

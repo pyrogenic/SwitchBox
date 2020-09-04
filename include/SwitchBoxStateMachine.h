@@ -23,8 +23,12 @@ enum Trigger {
   kTriggerSelectOutputB,
   kTriggerSelectOutputC,
 
-  kTriggerValhallaOutputLocked,
-  kTriggerValhallaOutputUnlocked
+  kInteractiveTriggerCount,
+
+  kTriggerValhallaBypassLocked,
+  kTriggerValhallaBypassUnlocked,
+  kTriggerValhallaEngageLocked,
+  kTriggerValhallaEngageUnlocked
 };
 
 extern std::map<FunctionFsm *, const std::string> stateMachineNames;
