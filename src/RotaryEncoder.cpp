@@ -1,6 +1,6 @@
-#include <Arduino.h>
-#include "DebugLine.h"
 #include "RotaryEncoder.h"
+#include "DebugLine.h"
+#include <Arduino.h>
 
 void rotary_setup(RotaryState &state) {
   pinMode(state.pinA.pin, INPUT);
@@ -26,8 +26,8 @@ RotaryAction rotary_loop(RotaryState &state) {
   bool b0 = state.pinB.value;
   if (a0 && b0) {
     bool clockwise = state.pinA.debounce < state.pinB.debounce;
-    bool da=debounce(state.pinA);
-    bool db=debounce(state.pinB);
+    bool da = debounce(state.pinA);
+    bool db = debounce(state.pinB);
     if (da && db) {
       return clockwise ? kRotaryActionClockwiseUp : kRotaryActionWiddershinsUp;
     }
@@ -44,14 +44,14 @@ RotaryAction rotary_loop(RotaryState &state) {
       return kRotaryActionNone;
     }
     debounce(state.pinB);
-    return kRotaryActionClockwiseDown;    
+    return kRotaryActionClockwiseDown;
   }
   if (b0) {
     if (debounce(state.pinB)) {
       return kRotaryActionNone;
     }
     debounce(state.pinA);
-    return kRotaryActionWiddershinsDown;    
+    return kRotaryActionWiddershinsDown;
   }
   debounce(state.pinA);
   debounce(state.pinB);

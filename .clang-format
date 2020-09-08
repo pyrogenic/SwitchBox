@@ -4,4 +4,6 @@ BasedOnStyle: LLVM
 ---
 Language: Cpp
 ColumnLimit: 200
+AlignEscapedNewlines: Left
+AllowShortFunctionsOnASingleLine: InlineOnly
 ---

@@ -11,24 +11,23 @@
 
 enum Trigger {
   kTriggerToggleInput,
-  kTriggerSelectInputA,
-  kTriggerSelectInputB,
+  kTriggerSelectInputDigital,
+  kTriggerSelectInputAnalog,
 
-  kTriggerToggleValhallaPreamp,
-  kTriggerSelectValhallaPreampBypass,
-  kTriggerSelectValhallaPreampEngage,
+  kTriggerToggleSubwoofer,
+  kTriggerSubwooferBypass,
+  kTriggerSubwooferEngage,
 
   kTriggerToggleOutput,
-  kTriggerSelectOutputA,
-  kTriggerSelectOutputB,
-  kTriggerSelectOutputC,
+  kTriggerSelectOutputGeshelli,
+  kTriggerSelectOutputValhalla,
+
+  kTriggerActivateMonitor,
 
   kInteractiveTriggerCount,
 
-  kTriggerValhallaBypassLocked,
-  kTriggerValhallaBypassUnlocked,
-  kTriggerValhallaEngageLocked,
-  kTriggerValhallaEngageUnlocked
+  kTriggerPreampEngaged,
+  kTriggerPreampBypassed,
 };
 
 extern std::map<FunctionFsm *, const std::string> stateMachineNames;
@@ -37,7 +36,7 @@ extern std::map<Trigger, const std::string> triggerNames;
 
 const std::string &sbsm_trigger_name(const Trigger event);
 const std::string &sbsm_input_label();
-const std::string &sbsm_preamp_label();
+const std::string &sbsm_subwoofer_label();
 const std::string &sbsm_output_label();
 
 void sbsm_setup();

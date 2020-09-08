@@ -32,9 +32,9 @@ void setup() {
   display.clear();
 
   pinMode(RELAY_INPUT, OUTPUT);
-  pinMode(RELAY_VALHALLA, OUTPUT);
-  pinMode(RELAY_OUTPUT_A, OUTPUT);
-  pinMode(RELAY_OUTPUT_B, OUTPUT);
+  pinMode(RELAY_MONITOR, OUTPUT);
+  pinMode(RELAY_AMP, OUTPUT);
+  pinMode(RELAY_SUB, OUTPUT);
 
   rotaryState.pinA.pin = ROTARY_PIN_A;
   rotaryState.pinB.pin = ROTARY_PIN_B;
@@ -71,7 +71,7 @@ void loop() {
       Trigger event = (Trigger)menu.selection;
       sbsm_trigger(event);
       Serial.print("Select: ");
-      Serial.println(triggerNames.at(event).c_str());
+      Serial.println(triggerNames.find(event)->second.c_str());
       break;
     }
     case kRotaryActionWiddershinsUp:
@@ -107,7 +107,7 @@ void loop() {
   }
   menuUpdate = false;
   char label[33] = {0};
-  snprintf(label, 32, "%s > %s > %s", sbsm_input_label().c_str(), sbsm_preamp_label().c_str(), sbsm_output_label().c_str());
+  snprintf(label, 32, "%s > %s > %s", sbsm_input_label().c_str(), sbsm_subwoofer_label().c_str(), sbsm_output_label().c_str());
   if (strcmp(lastLabel, label)) {
     strcpy(lastLabel, label);
     NanoRect rect = {0, 0, 128, 8};
