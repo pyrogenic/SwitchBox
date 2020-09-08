@@ -73,18 +73,10 @@ const std::string &sbsm_output_label() {
 }
 
 void sbsm_trigger(Trigger event) {
-  Serial.printf("\n>> [%d] (%s)\n", event, sbsm_trigger_name(event).c_str());
-  Serial.println("Triggering fsm_input...");
-  delay(1);
-  fsm_input.trigger(event);
-  Serial.println("Triggering fsm_subwoofer...");
-  delay(1);
-  fsm_subwoofer.trigger(event);
-  Serial.println("Triggering fsm_output...");
-  delay(1);
-  fsm_output.trigger(event);
-  Serial.println("done");
-  delay(1);
+  Serial.printf("\nsbsm_trigger: [%d] (%s)\n", event, sbsm_trigger_name(event).c_str());
+  for (auto fsm : stateMachineNames) {
+    fsm.first->trigger(event);
+  }
 }
 
 // fsm state functions
@@ -110,13 +102,9 @@ void state_output_geshelli_on_enter() {
 }
 
 void state_output_valhalla_on_enter() {
-  Serial.printf("state_output_valhalla_on_enter - 0\n");
   digitalWrite(RELAY_AMP, HIGH);
-  Serial.printf("state_output_valhalla_on_enter - 1\n");
   digitalWrite(RELAY_MONITOR, LOW);
-  Serial.printf("state_output_valhalla_on_enter - 2\n");
   sbsm_trigger(kTriggerPreampEngaged);
-  Serial.printf("state_output_valhalla_on_enter - 3\n");
 }
 
 void state_output_valhalla_on_exit() {
@@ -157,8 +145,8 @@ void sbsm_setup() {
 
   triggerNames.emplace(kTriggerActivateMonitor, "Monitor");
 
-  // triggerNames.emplace(kTriggerPreampEngaged, "Preamp Available");
-  // triggerNames.emplace(kTriggerPreampBypassed, "No Preamp");
+  triggerNames.emplace(kTriggerPreampEngaged, "Preamp Available");
+  triggerNames.emplace(kTriggerPreampBypassed, "No Preamp");
 
   // define transitions between states with
   // myfsm.add_transition(&state_to_transition_from, &state_to_transition_to,
