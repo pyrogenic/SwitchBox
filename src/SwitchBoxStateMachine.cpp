@@ -31,30 +31,60 @@ FunctionState state_output_monitor(&state_output_monitor_on_enter, nullptr, null
 // define the fsm with the state it will start in
 FunctionFsm fsm_input(&state_input_digital);
 FunctionFsm fsm_output(&state_output_geshelli);
-FunctionFsm fsm_subwoofer(&state_subwoofer_bypass);
+// this has to start locked b/c default output isn't Valhala
+FunctionFsm fsm_subwoofer(&state_subwoofer_engage_locked);
 
 std::map<FunctionFsm *, const std::string> stateMachineNames;
 std::map<FunctionState *, const std::string> stateNames;
 std::map<Trigger, const std::string> triggerNames;
 
+const std::string missingString = "MISSING";
+
 const std::string &sbsm_trigger_name(const Trigger event) {
-  return triggerNames.at(event);
+  const auto it = triggerNames.find(event);
+  if (it == triggerNames.end()) {
+    return missingString;
+  }
+  return it->second;
 }
+
 const std::string &sbsm_input_label() {
-  return stateNames.at(&fsm_input.get_current_state());
+  const auto it = stateNames.find(&fsm_input.get_current_state());
+  if (it == stateNames.end()) {
+    return missingString;
+  }
+  return it->second;
 }
+
 const std::string &sbsm_subwoofer_label() {
-  return stateNames.at(&fsm_subwoofer.get_current_state());
+  const auto it = stateNames.find(&fsm_subwoofer.get_current_state());
+  if (it == stateNames.end()) {
+    return missingString;
+  }
+  return it->second;
 }
+
 const std::string &sbsm_output_label() {
-  return stateNames.at(&fsm_output.get_current_state());
+  const auto it = stateNames.find(&fsm_output.get_current_state());
+  if (it == stateNames.end()) {
+    return missingString;
+  }
+  return it->second;
 }
 
 void sbsm_trigger(Trigger event) {
-  Serial.printf(">> %s\n", sbsm_trigger_name(event).c_str());
+  Serial.printf("\n>> [%d] (%s)\n", event, sbsm_trigger_name(event).c_str());
+  Serial.println("Triggering fsm_input...");
+  delay(1);
   fsm_input.trigger(event);
+  Serial.println("Triggering fsm_subwoofer...");
+  delay(1);
   fsm_subwoofer.trigger(event);
+  Serial.println("Triggering fsm_output...");
+  delay(1);
   fsm_output.trigger(event);
+  Serial.println("done");
+  delay(1);
 }
 
 // fsm state functions
@@ -80,9 +110,13 @@ void state_output_geshelli_on_enter() {
 }
 
 void state_output_valhalla_on_enter() {
+  Serial.printf("state_output_valhalla_on_enter - 0\n");
   digitalWrite(RELAY_AMP, HIGH);
+  Serial.printf("state_output_valhalla_on_enter - 1\n");
   digitalWrite(RELAY_MONITOR, LOW);
+  Serial.printf("state_output_valhalla_on_enter - 2\n");
   sbsm_trigger(kTriggerPreampEngaged);
+  Serial.printf("state_output_valhalla_on_enter - 3\n");
 }
 
 void state_output_valhalla_on_exit() {
@@ -96,7 +130,7 @@ void state_output_monitor_on_enter() {
 
 void sbsm_setup() {
   stateMachineNames.emplace(&fsm_input, "Input");
-  stateMachineNames.emplace(&fsm_subwoofer, "Preamp");
+  stateMachineNames.emplace(&fsm_subwoofer, "Sub");
   stateMachineNames.emplace(&fsm_output, "Output");
 
   stateNames.emplace(&state_input_digital, "Digital");
@@ -113,9 +147,9 @@ void sbsm_setup() {
   triggerNames.emplace(kTriggerSelectInputDigital, "Digital In");
   triggerNames.emplace(kTriggerSelectInputAnalog, "Analog In");
 
-  triggerNames.emplace(kTriggerToggleSubwoofer, "Toggle Preamp");
-  triggerNames.emplace(kTriggerSubwooferBypass, "Bypass Preamp");
-  triggerNames.emplace(kTriggerSubwooferEngage, "Engage Preamp");
+  triggerNames.emplace(kTriggerToggleSubwoofer, "Toggle Subwoofer");
+  triggerNames.emplace(kTriggerSubwooferBypass, "Subwoofer Off");
+  triggerNames.emplace(kTriggerSubwooferEngage, "Subwoofer On");
 
   triggerNames.emplace(kTriggerToggleOutput, "Next Output");
   triggerNames.emplace(kTriggerSelectOutputGeshelli, "Gesheli");
@@ -123,9 +157,8 @@ void sbsm_setup() {
 
   triggerNames.emplace(kTriggerActivateMonitor, "Monitor");
 
-  triggerNames.emplace(kTriggerToggleSubwoofer, "Toggle Subwoofer");
-  triggerNames.emplace(kTriggerSubwooferBypass, "Bypass Subwoofer");
-  triggerNames.emplace(kTriggerSubwooferEngage, "Engage Subwoofer");
+  // triggerNames.emplace(kTriggerPreampEngaged, "Preamp Available");
+  // triggerNames.emplace(kTriggerPreampBypassed, "No Preamp");
 
   // define transitions between states with
   // myfsm.add_transition(&state_to_transition_from, &state_to_transition_to,
@@ -140,7 +173,6 @@ void sbsm_setup() {
   fsm_input.add_transition(&state_input_analog, &state_input_digital, kTriggerToggleInput, nullptr);
   fsm_input.add_transition(&state_input_analog, &state_input_digital, kTriggerSelectInputDigital, nullptr);
 
-  // valhalla toggle / toggle while locked
   fsm_subwoofer.add_transition(&state_subwoofer_bypass, &state_subwoofer_engage, kTriggerToggleSubwoofer, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_bypass, &state_subwoofer_engage, kTriggerSubwooferEngage, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_bypass, &state_subwoofer_bypass_locked, kTriggerPreampBypassed, nullptr);

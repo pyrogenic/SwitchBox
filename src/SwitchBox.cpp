@@ -18,7 +18,7 @@
 DisplaySSD1306_128x64_I2C display(-1);
 
 SAppMenu menu;
-#define MENU_ITEM_COUNT (10)
+#define MENU_ITEM_COUNT (kInteractiveTriggerCount)
 char *menuItems[MENU_ITEM_COUNT] = {0};
 //#define BAR_TOP (58)
 NanoRect menuRect = {0, 16, 128, 64};
@@ -49,6 +49,8 @@ void setup() {
   }
 
   display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect);
+  display.setFixedFont(ssd1306xled_font6x8);
+  display.showMenuSmooth(&menu);
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
@@ -60,9 +62,23 @@ int encoderPosCount = 0;
 bool menuUpdate = true;
 
 char lastDebug[256] = {0};
-char lastLabel[256] = {0};
+char lastRow0[256] = {0};
+char lastRow1[256] = {0};
 // the loop routine runs over and over again forever:
 void loop() {
+  // digitalWrite(RELAY_INPUT, HIGH);
+  // delay(1000);
+  // digitalWrite(RELAY_INPUT, LOW);
+  // digitalWrite(RELAY_MONITOR, HIGH);
+  // delay(1000);
+  // digitalWrite(RELAY_MONITOR, LOW);
+  // digitalWrite(RELAY_AMP, HIGH);
+  // delay(1000);
+  // digitalWrite(RELAY_AMP, LOW);
+  // digitalWrite(RELAY_SUB, HIGH);
+  // delay(1000);
+  // digitalWrite(RELAY_SUB, LOW);
+
   sbsm_loop();
   RotaryAction action = rotary_loop(rotaryState);
   if (action) {
@@ -106,22 +122,32 @@ void loop() {
     display.updateMenuSmooth(&menu);
   }
   menuUpdate = false;
-  char label[33] = {0};
-  snprintf(label, 32, "%s > %s > %s", sbsm_input_label().c_str(), sbsm_subwoofer_label().c_str(), sbsm_output_label().c_str());
-  if (strcmp(lastLabel, label)) {
-    strcpy(lastLabel, label);
+  char row0[33] = {0};
+  char row1[33] = {0};
+  snprintf(row0, 32, "%s > %s", sbsm_input_label().c_str(), sbsm_output_label().c_str());
+  snprintf(row1, 32, "%s", sbsm_subwoofer_label().c_str());
+  if (strcmp(lastRow0, row0)) {
+    strcpy(lastRow0, row0);
     NanoRect rect = {0, 0, 128, 8};
     display.setColor(BLACK);
     display.fillRect(rect);
     display.setFixedFont(ssd1306xled_font6x8);
-    display.printFixed(0, 0, label, STYLE_NORMAL);
+    display.printFixed(0, 0, row0, STYLE_NORMAL);
   }
-  if (strcmp(lastDebug, debug_get())) {
-    strcpy(lastDebug, debug_get());
-    NanoRect rect = {0, 8, 128, 16};
+  if (strcmp(lastRow1, row1)) {
+    strcpy(lastRow1, row1);
+    NanoRect rect = {0, 9, 128, 14};
     display.setColor(BLACK);
     display.fillRect(rect);
-    display.setFixedFont(ssd1306xled_font6x8);
-    display.printFixed(0, 8, debug_get(), STYLE_NORMAL);
+    display.setFixedFont(ssd1306xled_font5x7);
+    display.printFixed(strlen(row1) * 6, 9, row1, STYLE_NORMAL);
   }
+  // if (strcmp(lastDebug, debug_get())) {
+  //   strcpy(lastDebug, debug_get());
+  //   NanoRect rect = {0, 8, 128, 16};
+  //   display.setColor(BLACK);
+  //   display.fillRect(rect);
+  //   display.setFixedFont(ssd1306xled_font6x8);
+  //   display.printFixed(0, 8, debug_get(), STYLE_NORMAL);
+  // }
 }
