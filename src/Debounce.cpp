@@ -32,3 +32,8 @@ bool debounce(ButtonState &buttonState, bool raw) {
   }
   return false;
 }
+
+bool debounce_steady(ButtonState &buttonState) {
+  int dt = (millis() - buttonState.debounce);
+  return dt > DEBOUNCE_INTERVAL;
+}

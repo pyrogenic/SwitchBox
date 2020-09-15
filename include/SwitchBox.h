@@ -1,5 +1,8 @@
 #pragma once
 
+#define BUTTON_PIN_A 0
+#define BUTTON_PIN_B 1
+
 // 0, 1 don't seem to work with UNO
 // Connected to CLK on KY-040
 #define ROTARY_PIN_A 2

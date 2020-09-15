@@ -23,13 +23,20 @@ char *menuItems[MENU_ITEM_COUNT] = {0};
 //#define BAR_TOP (58)
 NanoRect menuRect = {0, 16, 128, 64};
 
-// int activeOutput = 0;
+ButtonState buttonA = {BUTTON_PIN_A};
+ButtonState buttonB = {BUTTON_PIN_B};
+
+int read = 0;
+int clear = 0;
 
 // the setup routine runs once when you press reset
 RotaryState rotaryState;
 void setup() {
   display.begin();
   display.clear();
+
+  pinMode(BUTTON_PIN_A, INPUT);
+  pinMode(BUTTON_PIN_B, INPUT);
 
   pinMode(RELAY_INPUT, OUTPUT);
   pinMode(RELAY_MONITOR, OUTPUT);
@@ -40,6 +47,9 @@ void setup() {
   rotaryState.pinB.pin = ROTARY_PIN_B;
   rotaryState.pinSwitch.pin = ROTARY_PIN_BUTTON;
   rotary_setup(rotaryState);
+
+  debounce(buttonA);
+  debounce(buttonB);
 
   sbsm_setup();
 
@@ -54,7 +64,6 @@ void setup() {
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
-  Serial.println("Good morning!");
 }
 
 int encoderPosCount = 0;
@@ -65,6 +74,7 @@ char lastDebug[256] = {0};
 char lastRow0[256] = {0};
 char lastRow1[256] = {0};
 // the loop routine runs over and over again forever:
+int nextTick = 0;
 void loop() {
   // digitalWrite(RELAY_INPUT, HIGH);
   // delay(1000);
@@ -78,6 +88,41 @@ void loop() {
   // digitalWrite(RELAY_SUB, HIGH);
   // delay(1000);
   // digitalWrite(RELAY_SUB, LOW);
+
+  // if (millis() > nextTick) {
+  //   Serial.printf("...read/clear: %d/%d  last/value: A:%d/%d, B:%d/%d\n", read, clear, buttonA.last, buttonA.value, buttonB.last, buttonB.value);
+  //   nextTick = millis() + 1000;
+  // }
+
+  if (debounce(buttonA)) {
+    if (buttonA.value) {
+      read |= 1;
+    } else {
+      clear |= 1;
+    }
+    // Serial.printf("A) read/clear: %d/%d\n", read, clear);
+  }
+
+  if (debounce(buttonB)) {
+    if (buttonB.value) {
+      read |= 2;
+    } else {
+      clear |= 2;
+    }
+    // Serial.printf("B) read/clear: %d/%d\n", read, clear);
+  }
+
+  // all downs have ups
+  if (read && read == clear) {
+    Serial.printf("TSU: %d\n", read);
+    read = clear = 0;
+  }
+
+  // if (debounce_steady(buttonA) && debounce_steady(buttonB) ) {
+  //   read = (1 & buttonA.value) | (2 & buttonB.value);
+  //   clear = ~(1 & buttonA.value) | (2 & buttonB.value);
+  //   Serial.printf("!! read/clear: %d/%d !!\n", read, clear);
+  // }
 
   sbsm_loop();
   RotaryAction action = rotary_loop(rotaryState);
