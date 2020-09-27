@@ -10,6 +10,9 @@
 #define ROTARY_PIN_B 3
 // 4, 5 used by OLED on XIAO as A4/A5
 
+// 4 -- SDA
+// 5 -- SDC
+
 // RELAY_INPUT switches from the DAC to the PHONO input
 #define RELAY_INPUT 6
 // RELAY_MONITOR engages the preamp bypass (direct to speakers)

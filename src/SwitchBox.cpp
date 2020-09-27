@@ -15,7 +15,11 @@
 #include "SwitchBoxStateMachine.h"
 #include <lcdgfx.h>
 
+#ifdef WHITE_OLED
 DisplaySSD1306_128x64_I2C display(-1);
+#else
+DisplaySSD1331_96x64x16_SPI display(-1);
+#endif
 
 SAppMenu menu;
 #define MENU_ITEM_COUNT (kInteractiveTriggerCount)
