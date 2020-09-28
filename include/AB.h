@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <cstdint>
 
+#define BITS_PER_BYTE 8
+
 typedef enum {
   kABIPinHardware = 0,
   kABIPinShiftRegister = 1,
@@ -10,7 +12,7 @@ typedef enum {
 
 typedef struct {
   PinType type;
-  uint32_t pin;
+  int pin;
 } Pin;
 
-#define AB_DELAY(N) delay(N)
+#define AB_DELAY(N) delayMicroseconds(10 * N)

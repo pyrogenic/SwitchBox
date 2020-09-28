@@ -52,33 +52,33 @@
 typedef enum {
   // // Connected to CLK on KY-040
   // // Connected to A (11) on 74165
-  kSinRotaryA = 1 << 0,
+  kSinRotaryA = 0,
   // // Connected to DT on KY-040
   // // Connected to B (12) on 74165
-  kSinRotaryB = 1 << 1,
+  kSinRotaryB = 1,
   // // Connected to SW on KY-040
   // // Connected to C (13) on 74165
-  kSinRotaryButton = 1 << 2,
+  kSinRotaryButton = 2,
 
   // // Connected to D (14) on 74165
-  kSinKeyD = 1 << 3,
+  kSinKeyD = 3,
   // // Connected to E (3) on 74165
-  kSinKeyE = 1 << 4,
+  kSinKeyE = 4,
   // // Connected to F (4) on 74165
-  kSinKeyF = 1 << 5,
+  kSinKeyF = 5,
   // // Connected to G (5) on 74165
-  kSinKeyG = 1 << 6,
+  kSinKeyG = 6,
   // // Connected to H (6) on 74165
-  kSinKeyH = 1 << 7,
+  kSinKeyH = 7,
 } ShiftInBit;
 
 typedef enum {
-  kSoutRelayInput = 1 << 0,
-  kSoutRelayMonitor = 1 << 1,
-  kSoutRelayAmp = 1 << 2,
-  kSoutRelaySub = 1 << 3,
-  kSoutUnusedA = 1 << 4,
-  kSoutUnusedB = 1 << 5,
-  kSoutUnusedC = 1 << 6,
-  kSoutUnusedD = 1 << 7,
+  kSoutRelayInput = 0,
+  kSoutRelayMonitor = 1,
+  kSoutRelayAmp = 2,
+  kSoutRelaySub = 3,
+  kSoutUnusedA = 4,
+  kSoutUnusedB = 5,
+  kSoutUnusedC = 6,
+  kSoutUnusedD = 7,
 } ShiftOutBit;

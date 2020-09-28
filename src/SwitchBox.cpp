@@ -25,8 +25,9 @@ char *menuItems[MENU_ITEM_COUNT] = {0};
 //#define BAR_TOP (58)
 NanoRect menuRect = {0, 16, 128, 64};
 
-ButtonState buttonA = {kABIPinShiftRegister, kSinRotaryA};
-ButtonState buttonB = {kABIPinShiftRegister, kSinRotaryB};
+ButtonState buttonRed = {kABIPinShiftRegister, kSinKeyH};
+ButtonState buttonGreen = {kABIPinShiftRegister, kSinKeyG};
+ButtonState buttonBlue = {kABIPinShiftRegister, kSinKeyF};
 
 int read = 0;
 int clear = 0;
@@ -46,8 +47,8 @@ void setup() {
 
   ABOnit abonit = {0};
   abonit.clk = SHIFT_CLK;
-  abonit.data = SHIFT_IN_DATA;
-  abonit.load = SHIFT_IN_LOAD;
+  abonit.data = SHIFT_OUT_DATA;
+  abonit.load = SHIFT_OUT_LATCH;
   abo_setup(abonit);
 
   rotaryState.pinA.pin = {kABIPinShiftRegister, kSinRotaryA};
@@ -55,8 +56,9 @@ void setup() {
   rotaryState.pinSwitch.pin = {kABIPinShiftRegister, kSinRotaryButton};
   rotary_setup(rotaryState);
 
-  debounce(buttonA);
-  debounce(buttonB);
+  debounce(buttonRed);
+  debounce(buttonGreen);
+  debounce(buttonBlue);
 
   sbsm_setup();
 
@@ -81,65 +83,50 @@ char lastDebug[256] = {0};
 char lastRow0[256] = {0};
 char lastRow1[256] = {0};
 // the loop routine runs over and over again forever:
-int nextTick = 0;
+float avgTick = 0;
+unsigned long ts = micros();
+
 void loop() {
-  while (millis() < nextTick) {
-    delay(1);
+  auto dt = micros() - ts;
+  if (dt < 1000) {
+    delayMicroseconds(1000 - dt);
   }
-  nextTick = millis() + 200;
+  dt = micros() - ts;
+  avgTick = ((29.0f * avgTick) + dt) / 30.0f;
+  ts += dt;
 
   abi_loop();
-  abi_debug();
 
-  // digitalWrite(RELAY_INPUT, HIGH);
-  // delay(1000);
-  // digitalWrite(RELAY_INPUT, LOW);
-  // digitalWrite(RELAY_MONITOR, HIGH);
-  // delay(1000);
-  // digitalWrite(RELAY_MONITOR, LOW);
-  // digitalWrite(RELAY_AMP, HIGH);
-  // delay(1000);
-  // digitalWrite(RELAY_AMP, LOW);
-  // digitalWrite(RELAY_SUB, HIGH);
-  // delay(1000);
-  // digitalWrite(RELAY_SUB, LOW);
-
-  // if (millis() > nextTick) {
-  //   Serial.printf("...read/clear: %d/%d  last/value: A:%d/%d, B:%d/%d\n", read, clear, buttonA.last, buttonA.value, buttonB.last, buttonB.value);
-  //   nextTick = millis() + 1000;
-  // }
-
-  if (debounce(buttonA)) {
-    if (buttonA.value) {
-      read |= 1;
-    } else {
-      clear |= 1;
-    }
-    // Serial.printf("A) read/clear: %d/%d\n", read, clear);
+  debounce(buttonGreen);
+  if (buttonGreen.value) {
+    abi_debug();
   }
 
-  if (debounce(buttonB)) {
-    if (buttonB.value) {
-      read |= 2;
-    } else {
-      clear |= 2;
-    }
-    // Serial.printf("B) read/clear: %d/%d\n", read, clear);
-  }
+    // digitalWrite(RELAY_INPUT, HIGH);
+    // delay(1000);
+    // digitalWrite(RELAY_INPUT, LOW);
+    // digitalWrite(RELAY_MONITOR, HIGH);
+    // delay(1000);
+    // digitalWrite(RELAY_MONITOR, LOW);
+    // digitalWrite(RELAY_AMP, HIGH);
+    // delay(1000);
+    // digitalWrite(RELAY_AMP, LOW);
+    // digitalWrite(RELAY_SUB, HIGH);
+    // delay(1000);
+    // digitalWrite(RELAY_SUB, LOW);
 
-  // all downs have ups
-  if (read && read == clear) {
-    Serial.printf("TSU: %d\n", read);
-    read = clear = 0;
-  }
+    // if (micros() > nextTick) {
+    //   Serial.printf("...read/clear: %d/%d  last/value: A:%d/%d, B:%d/%d\n", read, clear, buttonA.last, buttonA.value, buttonB.last, buttonB.value);
+    //   nextTick = micros() + 1000;
+    // }
 
-  // if (debounce_steady(buttonA) && debounce_steady(buttonB) ) {
-  //   read = (1 & buttonA.value) | (2 & buttonB.value);
-  //   clear = ~(1 & buttonA.value) | (2 & buttonB.value);
-  //   Serial.printf("!! read/clear: %d/%d !!\n", read, clear);
-  // }
+    // if (debounce_steady(buttonA) && debounce_steady(buttonB) ) {
+    //   read = (1 & buttonA.value) | (2 & buttonB.value);
+    //   clear = ~(1 & buttonA.value) | (2 & buttonB.value);
+    //   Serial.printf("!! read/clear: %d/%d !!\n", read, clear);
+    // }
 
-  sbsm_loop();
+    sbsm_loop();
   RotaryAction action = rotary_loop(rotaryState);
   if (action) {
     switch (action) {
@@ -212,5 +199,46 @@ void loop() {
   // }
 
   abo_loop();
-  abo_debug();
+
+  debounce(buttonRed);
+  if (buttonRed.value) {
+    abo_debug();
+  }
+
+  debounce(buttonBlue);
+  if (buttonBlue.value) {
+    Serial.printf("Avg Tick: %dµs\n", (int)(avgTick));
+    delay(200);
+    ts = micros();
+  }
 }
+
+/*
+
+keyboard-matrix style input
+
+  if (debounce(buttonA)) {
+    if (buttonA.value) {
+      read |= 1;
+    } else {
+      clear |= 1;
+    }
+    // Serial.printf("A) read/clear: %d/%d\n", read, clear);
+  }
+
+  if (debounce(buttonB)) {
+    if (buttonB.value) {
+      read |= 2;
+    } else {
+      clear |= 2;
+    }
+    // Serial.printf("B) read/clear: %d/%d\n", read, clear);
+  }
+
+  // all downs have ups
+  if (read && read == clear) {
+    Serial.printf("TSU: %d\n", read);
+    read = clear = 0;
+  }
+
+*/

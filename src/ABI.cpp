@@ -82,23 +82,30 @@ int abi_digitalRead(const Pin &pin) {
     return digitalRead(pin.pin);
 
   case kABIPinShiftRegister:
-    const int registerIndex = pin.pin / sizeof(byte);
-    // assert(registerIndex >= 0);
-    // assert(registerIndex < ABI::registerCount);
-    const int bit = 1 << (pin.pin % sizeof(byte));
-    return bit == (ABI::registers[registerIndex]);
+    const int registerIndex = pin.pin / BITS_PER_BYTE;
+    if (registerIndex < 0) {
+      Serial.printf("Illegal register index %d for pin %d\n", registerIndex, pin.pin);
+      return 0;
+    } else if (registerIndex >= ABI::registerCount) {
+      Serial.printf("Illegal register index %d for pin %d\n", registerIndex, pin.pin);
+      return 0;
+    }
+    const int bit = 1 << (pin.pin % BITS_PER_BYTE);
+    return bit == (ABI::registers[registerIndex] & bit);
   }
 
+  Serial.printf("Illegal pin type %d\n", pin.type);
   return 0;
 }
 
 void abi_debug() {
-  for (int r = 0; r < ABI::registerCount; r++) {
-    Serial.printf("Input Register %d: [ ", r);
-    for (int i = 7; i >= 0; --i) {
-      bool on = ABI::registers[r] & (1 << i);
+  for (int registerIndex = 0; registerIndex < ABI::registerCount; ++registerIndex) {
+    Serial.printf("Input Register %d: [ ", registerIndex);
+    for (int bitIndex = 7; bitIndex >= 0; --bitIndex) {
+      const Pin pin = {kABIPinShiftRegister, static_cast<uint32_t>(bitIndex + (BITS_PER_BYTE * registerIndex))};
+      bool on = abi_digitalRead(pin);
       if (on) {
-        Serial.printf("%d ", i);
+        Serial.printf("%d ", bitIndex);
       } else {
         Serial.print("_ ");
       }
