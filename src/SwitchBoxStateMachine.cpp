@@ -1,6 +1,16 @@
 #include "SwitchBoxStateMachine.h"
+#include "ABO.h"
 #include "SwitchBox.h"
 #include <Arduino.h>
+
+// RELAY_INPUT switches from the DAC to the PHONO input
+Pin RELAY_INPUT = {kABIPinShiftRegister, kSoutRelayInput};
+// RELAY_MONITOR engages the preamp bypass (direct to speakers)
+Pin RELAY_MONITOR = {kABIPinShiftRegister, kSoutRelayMonitor};
+// RELAY_AMP switches from GESHELLI to VALHALLA output
+Pin RELAY_AMP = {kABIPinShiftRegister, kSoutRelayAmp};
+// RELAY_SUB engages the subwoofer output
+Pin RELAY_SUB = {kABIPinShiftRegister, kSoutRelaySub};
 
 void state_input_digital_on_enter();
 void state_input_analog_on_enter();
@@ -81,29 +91,29 @@ void sbsm_trigger(Trigger event) {
 
 // fsm state functions
 void state_input_digital_on_enter() {
-  digitalWrite(RELAY_INPUT, LOW);
+  abo_digitalWrite(RELAY_INPUT, LOW);
 }
 
 void state_input_analog_on_enter() {
-  digitalWrite(RELAY_INPUT, HIGH);
+  abo_digitalWrite(RELAY_INPUT, HIGH);
 }
 
 void state_subwoofer_bypass_on_enter() {
-  digitalWrite(RELAY_SUB, LOW);
+  abo_digitalWrite(RELAY_SUB, LOW);
 }
 
 void state_subwoofer_engage_on_enter() {
-  digitalWrite(RELAY_SUB, HIGH);
+  abo_digitalWrite(RELAY_SUB, HIGH);
 }
 
 void state_output_geshelli_on_enter() {
-  digitalWrite(RELAY_AMP, LOW);
-  digitalWrite(RELAY_MONITOR, LOW);
+  abo_digitalWrite(RELAY_AMP, LOW);
+  abo_digitalWrite(RELAY_MONITOR, LOW);
 }
 
 void state_output_valhalla_on_enter() {
-  digitalWrite(RELAY_AMP, HIGH);
-  digitalWrite(RELAY_MONITOR, LOW);
+  abo_digitalWrite(RELAY_AMP, HIGH);
+  abo_digitalWrite(RELAY_MONITOR, LOW);
   sbsm_trigger(kTriggerPreampEngaged);
 }
 
@@ -112,8 +122,8 @@ void state_output_valhalla_on_exit() {
 }
 
 void state_output_monitor_on_enter() {
-  digitalWrite(RELAY_AMP, LOW);
-  digitalWrite(RELAY_MONITOR, HIGH);
+  abo_digitalWrite(RELAY_AMP, LOW);
+  abo_digitalWrite(RELAY_MONITOR, HIGH);
 }
 
 void sbsm_setup() {

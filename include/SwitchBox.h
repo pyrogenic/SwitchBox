@@ -1,4 +1,5 @@
 #pragma once
+#include "AB.h"
 
 // #define BUTTON_PIN_A 0
 // #define BUTTON_PIN_B 1
@@ -39,7 +40,7 @@
 // SR_OUT SER
 #define SHIFT_OUT_DATA 6
 // SR_OUT RCLK
-#define SHIFT_OUT_DATA_LATCH 7
+#define SHIFT_OUT_LATCH 7
 
 // 8, 9, 10 used by OLED on XIAO as A4/A5
 

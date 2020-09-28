@@ -9,6 +9,8 @@
 */
 
 #include "SwitchBox.h"
+#include "ABI.h"
+#include "ABO.h"
 #include "Debounce.h"
 #include "DebugLine.h"
 #include "RotaryEncoder.h"
@@ -23,8 +25,8 @@ char *menuItems[MENU_ITEM_COUNT] = {0};
 //#define BAR_TOP (58)
 NanoRect menuRect = {0, 16, 128, 64};
 
-ButtonState buttonA = {BUTTON_PIN_A};
-ButtonState buttonB = {BUTTON_PIN_B};
+ButtonState buttonA = {kABIPinShiftRegister, kSinRotaryA};
+ButtonState buttonB = {kABIPinShiftRegister, kSinRotaryB};
 
 int read = 0;
 int clear = 0;
@@ -35,17 +37,22 @@ void setup() {
   display.begin();
   display.clear();
 
-  pinMode(BUTTON_PIN_A, INPUT);
-  pinMode(BUTTON_PIN_B, INPUT);
+  ABInit abinit = {0};
+  abinit.clk = SHIFT_CLK;
+  abinit.data = SHIFT_IN_DATA;
+  abinit.load = SHIFT_IN_LOAD;
+  abinit.read = SHIFT_IN_READ;
+  abi_setup(abinit);
 
-  pinMode(RELAY_INPUT, OUTPUT);
-  pinMode(RELAY_MONITOR, OUTPUT);
-  pinMode(RELAY_AMP, OUTPUT);
-  pinMode(RELAY_SUB, OUTPUT);
+  ABOnit abonit = {0};
+  abonit.clk = SHIFT_CLK;
+  abonit.data = SHIFT_IN_DATA;
+  abonit.load = SHIFT_IN_LOAD;
+  abo_setup(abonit);
 
-  rotaryState.pinA.pin = ROTARY_PIN_A;
-  rotaryState.pinB.pin = ROTARY_PIN_B;
-  rotaryState.pinSwitch.pin = ROTARY_PIN_BUTTON;
+  rotaryState.pinA.pin = {kABIPinShiftRegister, kSinRotaryA};
+  rotaryState.pinB.pin = {kABIPinShiftRegister, kSinRotaryB};
+  rotaryState.pinSwitch.pin = {kABIPinShiftRegister, kSinRotaryButton};
   rotary_setup(rotaryState);
 
   debounce(buttonA);
@@ -76,6 +83,14 @@ char lastRow1[256] = {0};
 // the loop routine runs over and over again forever:
 int nextTick = 0;
 void loop() {
+  while (millis() < nextTick) {
+    delay(1);
+  }
+  nextTick = millis() + 200;
+
+  abi_loop();
+  abi_debug();
+
   // digitalWrite(RELAY_INPUT, HIGH);
   // delay(1000);
   // digitalWrite(RELAY_INPUT, LOW);
@@ -195,4 +210,7 @@ void loop() {
   //   display.setFixedFont(ssd1306xled_font6x8);
   //   display.printFixed(0, 8, debug_get(), STYLE_NORMAL);
   // }
+
+  abo_loop();
+  abo_debug();
 }
