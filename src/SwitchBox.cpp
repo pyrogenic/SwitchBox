@@ -24,7 +24,7 @@
 
 #if DISPLAY_TYPE == WHITE_OLED
 DisplaySSD1306_128x64_I2C display(-1);
-#define DISPLAY_WIDTH (128)
+#define DISPLAY_WIDTH (96)
 #elif DISPLAY_TYPE == COLOR_OLED
 // struct SPlatformSpiConfig spiConfig;
 // spiConfig.busId = -1;
@@ -235,7 +235,7 @@ void loop() {
     display.setColor(BLACK);
     display.fillRect(rect);
     display.setFixedFont(ssd1306xled_font5x7);
-    display.printFixed(strlen(row1) * 6, 9, row1, STYLE_NORMAL);
+    display.printFixed(DISPLAY_WIDTH - strlen(row1) * 6, 9, row1, STYLE_NORMAL);
   }
   // if (strcmp(lastDebug, debug_get())) {
   //   strcpy(lastDebug, debug_get());
