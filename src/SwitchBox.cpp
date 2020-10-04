@@ -175,7 +175,7 @@ void loop() {
   }
   if (debounce(buttonEnter) && buttonEnter.value) {
     Trigger event = (Trigger)menu.selection;
-    // sbsm_trigger(event);
+    sbsm_trigger(event);
     Serial.print("Select: ");
     Serial.println(triggerNames.find(event)->second.c_str());
   }
