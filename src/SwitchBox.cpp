@@ -20,17 +20,14 @@
 #define WHITE_OLED 1
 #define COLOR_OLED 2
 
-#define DISPLAY_TYPE WHITE_OLED
+#define DISPLAY_TYPE COLOR_OLED
 
 #if DISPLAY_TYPE == WHITE_OLED
 DisplaySSD1306_128x64_I2C display(-1);
 #define DISPLAY_WIDTH (96)
 #elif DISPLAY_TYPE == COLOR_OLED
-// struct SPlatformSpiConfig spiConfig;
-// spiConfig.busId = -1;
-// spiConfig.cs = 10;
-// spiConfig.dc = 9;
-DisplaySSD1331_96x64x16_SPI display(-1); // 8, {-1, 10, 9});
+SPlatformSpiConfig spiConfig = {-1, {SSD1331_CS}, SSD1331_DC, 0, -1, -1};
+DisplaySSD1331_96x64x8_SPI display(SSD1331_RST, spiConfig); // 8, {-1, 10, 9});
 #define DISPLAY_WIDTH (96)
 #else
 #error No display type specified

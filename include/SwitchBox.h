@@ -44,6 +44,10 @@
 #define SHIFT_IN_READ 3
 
 // 4, 5 used by OLED on XIAO as A4/A5
+#define SSD1306_SDA 4
+#define SSD1306_SCL 5
+#define SSD1331_DC 4
+#define SSD1331_RST 5
 
 // Need a 74595 for the latched output, otherwise the serially-loaded bits will ghost over the relays
 // !OE should be held low
@@ -52,12 +56,14 @@
 // SR_OUT RCLK
 #define SHIFT_OUT_LATCH 7
 
-// 8, 9, 10 used by OLED on XIAO as A4/A5
-
-// from ADA           -- seeed
-// #define cs   10    -- MOSI
-// #define dc   9     -- MISO
-// #define rst  8     -- SCK
+// 8, 9, 10 used by OLED
+//   XIAO       SSD1331    lcdgfx
+//  8 - SCK       SCL       SCLK
+//  9 - MISO
+// 10 - MOSI      SDA       MOSI
+#define SSD1331_SCL 8
+#define SSD1331_CS 9
+#define SSD1331_SDA 10
 
 typedef enum {
   // // Connected to CLK on KY-040
