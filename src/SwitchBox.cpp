@@ -63,9 +63,9 @@ void setup() {
   rotaryState.pinSwitch.pin = {kABIPinShiftRegister, kSinRotaryButton};
   rotary_setup(rotaryState);
 #else
-  // debounce(buttonUp);
-  // debounce(buttonDown);
-  // debounce(buttonEnter);
+  debounce(buttonUp);
+  debounce(buttonDown);
+  debounce(buttonEnter);
 #endif
 
   // debounce(buttonRed);
@@ -165,20 +165,20 @@ void loop() {
     }
   }
 #else
-  // if (debounce(buttonUp) && buttonUp.value) {
-  //   display.menuUp(&menu);
-  //   menuUpdate = true;
-  // }
-  // if (debounce(buttonDown) && buttonDown.value) {
-  //   display.menuDown(&menu);
-  //   menuUpdate = true;
-  // }
-  // if (debounce(buttonEnter) && buttonEnter.value) {
-  //   Trigger event = (Trigger)menu.selection;
-  //   // sbsm_trigger(event);
-  //   Serial.print("Select: ");
-  //   Serial.println(triggerNames.find(event)->second.c_str());
-  // }
+  if (debounce(buttonUp) && buttonUp.value) {
+    display.menuUp(&menu);
+    menuUpdate = true;
+  }
+  if (debounce(buttonDown) && buttonDown.value) {
+    display.menuDown(&menu);
+    menuUpdate = true;
+  }
+  if (debounce(buttonEnter) && buttonEnter.value) {
+    Trigger event = (Trigger)menu.selection;
+    // sbsm_trigger(event);
+    Serial.print("Select: ");
+    Serial.println(triggerNames.find(event)->second.c_str());
+  }
 #endif
   // if (menuDirty) {
   // for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
