@@ -229,7 +229,7 @@ void loop() {
   //   display.printFixed(0, 8, debug_get(), STYLE_NORMAL);
   // }
 
-  // abo_loop();
+  abo_loop();
 
   dt = micros() - debug_ts;
   if (dt > DEBUG_INTERVAL) {
