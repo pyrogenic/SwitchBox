@@ -17,17 +17,30 @@
 #include "SwitchBoxStateMachine.h"
 #include <lcdgfx.h>
 
-#ifdef WHITE_OLED
+#define WHITE_OLED 1
+#define COLOR_OLED 2
+
+#define DISPLAY_TYPE WHITE_OLED
+
+#if DISPLAY_TYPE == WHITE_OLED
 DisplaySSD1306_128x64_I2C display(-1);
+#define DISPLAY_WIDTH (128)
+#elif DISPLAY_TYPE == COLOR_OLED
+// struct SPlatformSpiConfig spiConfig;
+// spiConfig.busId = -1;
+// spiConfig.cs = 10;
+// spiConfig.dc = 9;
+DisplaySSD1331_96x64x16_SPI display(-1); // 8, {-1, 10, 9});
+#define DISPLAY_WIDTH (96)
 #else
-DisplaySSD1331_96x64x16_SPI display(-1);
+#error No display type specified
 #endif
 
 SAppMenu menu;
 #define MENU_ITEM_COUNT (kInteractiveTriggerCount)
 char *menuItems[MENU_ITEM_COUNT] = {0};
 //#define BAR_TOP (58)
-NanoRect menuRect = {0, 16, 128, 64};
+NanoRect menuRect = {0, 16, DISPLAY_WIDTH, 64};
 
 ButtonState buttonRed = {kABIPinShiftRegister, kSinKeyH};
 ButtonState buttonGreen = {kABIPinShiftRegister, kSinKeyG};
@@ -189,7 +202,7 @@ void loop() {
   //   char c = i == activeOutput ? '*' : ' ';
   //   menuItems[i][0] = c;
   // }
-  //    NanoRect rect = {0, 0, 128, 32};
+  //    NanoRect rect = {0, 0, DISPLAY_WIDTH, 32};
   //    display.setColor(BLACK);
   //    display.fillRect(rect);
   //    display.setFixedFont( ssd1306xled_font8x16);
@@ -210,7 +223,7 @@ void loop() {
   snprintf(row1, 32, "%s", sbsm_subwoofer_label().c_str());
   if (strcmp(lastRow0, row0)) {
     strcpy(lastRow0, row0);
-    NanoRect rect = {0, 0, 128, 8};
+    NanoRect rect = {0, 0, DISPLAY_WIDTH, 8};
     display.setColor(BLACK);
     display.fillRect(rect);
     display.setFixedFont(ssd1306xled_font6x8);
@@ -218,7 +231,7 @@ void loop() {
   }
   if (strcmp(lastRow1, row1)) {
     strcpy(lastRow1, row1);
-    NanoRect rect = {0, 9, 128, 14};
+    NanoRect rect = {0, 9, DISPLAY_WIDTH, 14};
     display.setColor(BLACK);
     display.fillRect(rect);
     display.setFixedFont(ssd1306xled_font5x7);
@@ -226,7 +239,7 @@ void loop() {
   }
   // if (strcmp(lastDebug, debug_get())) {
   //   strcpy(lastDebug, debug_get());
-  //   NanoRect rect = {0, 8, 128, 16};
+  //   NanoRect rect = {0, 8, DISPLAY_WIDTH, 16};
   //   display.setColor(BLACK);
   //   display.fillRect(rect);
   //   display.setFixedFont(ssd1306xled_font6x8);
