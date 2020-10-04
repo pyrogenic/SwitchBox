@@ -15,4 +15,4 @@ typedef struct {
   int pin;
 } Pin;
 
-#define AB_DELAY(N) delayMicroseconds(10 * N)
+#define AB_DELAY(N) delayMicroseconds(5 * N)

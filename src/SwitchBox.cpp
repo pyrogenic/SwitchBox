@@ -32,8 +32,14 @@ ButtonState buttonBlue = {kABIPinShiftRegister, kSinKeyF};
 int read = 0;
 int clear = 0;
 
-// the setup routine runs once when you press reset
+#ifdef USE_ROTARY_INPUT
 RotaryState rotaryState;
+#else
+ButtonState buttonUp = {kABIPinShiftRegister, kSinUp};
+ButtonState buttonDown = {kABIPinShiftRegister, kSinDown};
+ButtonState buttonEnter = {kABIPinShiftRegister, kSinEnter};
+#endif
+
 void setup() {
   display.begin();
   display.clear();
@@ -51,14 +57,20 @@ void setup() {
   abonit.load = SHIFT_OUT_LATCH;
   abo_setup(abonit);
 
+#ifdef USE_ROTARY_INPUT
   rotaryState.pinA.pin = {kABIPinShiftRegister, kSinRotaryA};
   rotaryState.pinB.pin = {kABIPinShiftRegister, kSinRotaryB};
   rotaryState.pinSwitch.pin = {kABIPinShiftRegister, kSinRotaryButton};
   rotary_setup(rotaryState);
+#else
+  // debounce(buttonUp);
+  // debounce(buttonDown);
+  // debounce(buttonEnter);
+#endif
 
-  debounce(buttonRed);
-  debounce(buttonGreen);
-  debounce(buttonBlue);
+  // debounce(buttonRed);
+  // debounce(buttonGreen);
+  // debounce(buttonBlue);
 
   sbsm_setup();
 
@@ -85,11 +97,14 @@ char lastRow1[256] = {0};
 // the loop routine runs over and over again forever:
 float avgTick = 0;
 unsigned long ts = micros();
+unsigned long debug_ts = micros();
 
+#define TICK_LENGTH 100
+#define DEBUG_INTERVAL 100000
 void loop() {
   auto dt = micros() - ts;
-  if (dt < 1000) {
-    delayMicroseconds(1000 - dt);
+  if (dt < TICK_LENGTH) {
+    delayMicroseconds(TICK_LENGTH - dt);
   }
   dt = micros() - ts;
   avgTick = ((29.0f * avgTick) + dt) / 30.0f;
@@ -97,36 +112,36 @@ void loop() {
 
   abi_loop();
 
-  debounce(buttonGreen);
-  if (buttonGreen.value) {
-    abi_debug();
-  }
+  // debounce(buttonRed);
+  // debounce(buttonGreen);
+  // debounce(buttonBlue);
 
-    // digitalWrite(RELAY_INPUT, HIGH);
-    // delay(1000);
-    // digitalWrite(RELAY_INPUT, LOW);
-    // digitalWrite(RELAY_MONITOR, HIGH);
-    // delay(1000);
-    // digitalWrite(RELAY_MONITOR, LOW);
-    // digitalWrite(RELAY_AMP, HIGH);
-    // delay(1000);
-    // digitalWrite(RELAY_AMP, LOW);
-    // digitalWrite(RELAY_SUB, HIGH);
-    // delay(1000);
-    // digitalWrite(RELAY_SUB, LOW);
+  // digitalWrite(RELAY_INPUT, HIGH);
+  // delay(1000);
+  // digitalWrite(RELAY_INPUT, LOW);
+  // digitalWrite(RELAY_MONITOR, HIGH);
+  // delay(1000);
+  // digitalWrite(RELAY_MONITOR, LOW);
+  // digitalWrite(RELAY_AMP, HIGH);
+  // delay(1000);
+  // digitalWrite(RELAY_AMP, LOW);
+  // digitalWrite(RELAY_SUB, HIGH);
+  // delay(1000);
+  // digitalWrite(RELAY_SUB, LOW);
 
-    // if (micros() > nextTick) {
-    //   Serial.printf("...read/clear: %d/%d  last/value: A:%d/%d, B:%d/%d\n", read, clear, buttonA.last, buttonA.value, buttonB.last, buttonB.value);
-    //   nextTick = micros() + 1000;
-    // }
+  // if (micros() > nextTick) {
+  //   Serial.printf("...read/clear: %d/%d  last/value: A:%d/%d, B:%d/%d\n", read, clear, buttonA.last, buttonA.value, buttonB.last, buttonB.value);
+  //   nextTick = micros() + 1000;
+  // }
 
-    // if (debounce_steady(buttonA) && debounce_steady(buttonB) ) {
-    //   read = (1 & buttonA.value) | (2 & buttonB.value);
-    //   clear = ~(1 & buttonA.value) | (2 & buttonB.value);
-    //   Serial.printf("!! read/clear: %d/%d !!\n", read, clear);
-    // }
+  // if (debounce_steady(buttonA) && debounce_steady(buttonB) ) {
+  //   read = (1 & buttonA.value) | (2 & buttonB.value);
+  //   clear = ~(1 & buttonA.value) | (2 & buttonB.value);
+  //   Serial.printf("!! read/clear: %d/%d !!\n", read, clear);
+  // }
 
-    sbsm_loop();
+  sbsm_loop();
+#ifdef USE_ROTARY_INPUT
   RotaryAction action = rotary_loop(rotaryState);
   if (action) {
     switch (action) {
@@ -149,6 +164,22 @@ void loop() {
       break;
     }
   }
+#else
+  // if (debounce(buttonUp) && buttonUp.value) {
+  //   display.menuUp(&menu);
+  //   menuUpdate = true;
+  // }
+  // if (debounce(buttonDown) && buttonDown.value) {
+  //   display.menuDown(&menu);
+  //   menuUpdate = true;
+  // }
+  // if (debounce(buttonEnter) && buttonEnter.value) {
+  //   Trigger event = (Trigger)menu.selection;
+  //   // sbsm_trigger(event);
+  //   Serial.print("Select: ");
+  //   Serial.println(triggerNames.find(event)->second.c_str());
+  // }
+#endif
   // if (menuDirty) {
   // for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
   //   char c = i == activeOutput ? '*' : ' ';
@@ -198,18 +229,14 @@ void loop() {
   //   display.printFixed(0, 8, debug_get(), STYLE_NORMAL);
   // }
 
-  abo_loop();
+  // abo_loop();
 
-  debounce(buttonRed);
-  if (buttonRed.value) {
+  dt = micros() - debug_ts;
+  if (dt > DEBUG_INTERVAL) {
+    abi_debug();
     abo_debug();
-  }
-
-  debounce(buttonBlue);
-  if (buttonBlue.value) {
     Serial.printf("Avg Tick: %dµs\n", (int)(avgTick));
-    delay(200);
-    ts = micros();
+    debug_ts = micros();
   }
 }
 

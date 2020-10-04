@@ -30,8 +30,6 @@ void abi_setup(ABInit init) {
 }
 
 void abi_loop() {
-  digitalWrite(ABI::pin_read, HIGH);
-
   // digitalWrite(clockEnablePin, HIGH);
   // digitalWrite(ploadPin, LOW);
   // delayMicroseconds(PULSE_WIDTH_USEC);
@@ -42,10 +40,11 @@ void abi_loop() {
   digitalWrite(ABI::pin_load, LOW);
   AB_DELAY(1);
   digitalWrite(ABI::pin_load, HIGH);
+  AB_DELAY(1);
 
   // Enable read
-  digitalWrite(ABI::pin_clk, LOW);
   digitalWrite(ABI::pin_read, LOW);
+  digitalWrite(ABI::pin_clk, LOW); // should be redundant
   // Read from shift ABI::registers, least-significant byte first
   for (int r = 0; r < ABI::registerCount; ++r) {
     // ABI::registers[i] = shiftIn(ABI::pin_data, ABI::pin_clk, LSB_FIRST);
@@ -57,10 +56,12 @@ void abi_loop() {
       digitalWrite(ABI::pin_clk, HIGH);
       AB_DELAY(1);
       digitalWrite(ABI::pin_clk, LOW);
+      AB_DELAY(1);
     }
     ABI::registers[r] = value;
   }
   digitalWrite(ABI::pin_read, HIGH);
+  AB_DELAY(10);
 }
 
 void abi_pinMode(const Pin &pin, uint32_t dwMode) {

@@ -1,6 +1,16 @@
 #pragma once
 #include "AB.h"
 
+// 74HC165
+// SHIFT_IN_LOAD <-  SH -|  1     16 |- VCC     -> +5v
+//         CLOCK <- CLK -|  2     15 |- CLK_INH -> SHIFT_IN_READ
+//         bit 4 <-   E -|  3     14 |- D       -> bit 3
+//         bit 5 <-   F -|  4     13 |- C       -> bit 2
+//         bit 6 <-   G -|  5     12 |- B       -> bit 1
+//         bit 7 <-   H -|  6     11 |- A       -> bit 0
+//           GND <-  ~Q -|  6     10 |- SER     -> 10kΩ -> +5v (or next highest SR)
+//           GND <- GND -|  6      9 |- Q       -> SHIFT_IN_DATA
+
 // #define BUTTON_PIN_A 0
 // #define BUTTON_PIN_B 1
 
@@ -53,12 +63,15 @@ typedef enum {
   // // Connected to CLK on KY-040
   // // Connected to A (11) on 74165
   kSinRotaryA = 0,
+  kSinUp = kSinRotaryA,
   // // Connected to DT on KY-040
   // // Connected to B (12) on 74165
   kSinRotaryB = 1,
+  kSinDown = kSinRotaryB,
   // // Connected to SW on KY-040
   // // Connected to C (13) on 74165
   kSinRotaryButton = 2,
+  kSinEnter = kSinRotaryButton,
 
   // // Connected to D (14) on 74165
   kSinKeyD = 3,
