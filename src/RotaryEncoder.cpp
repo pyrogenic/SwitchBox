@@ -1,15 +1,16 @@
 #include "RotaryEncoder.h"
+#include "ABO.h"
 #include "DebugLine.h"
 #include <Arduino.h>
 
 void rotary_setup(RotaryState &state) {
-  pinMode(state.pinA.pin, INPUT);
-  pinMode(state.pinB.pin, INPUT);
-  pinMode(state.pinSwitch.pin, INPUT);
+  abi_pinMode(state.pinA.pin, INPUT);
+  abi_pinMode(state.pinB.pin, INPUT);
+  abi_pinMode(state.pinSwitch.pin, INPUT);
 
-  digitalWrite(state.pinA.pin, HIGH);
-  digitalWrite(state.pinB.pin, HIGH);
-  digitalWrite(state.pinSwitch.pin, HIGH);
+  abo_digitalWrite(state.pinA.pin, HIGH);
+  abo_digitalWrite(state.pinB.pin, HIGH);
+  abo_digitalWrite(state.pinSwitch.pin, HIGH);
 }
 
 unsigned long ms = millis();

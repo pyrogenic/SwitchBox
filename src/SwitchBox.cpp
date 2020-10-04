@@ -9,6 +9,8 @@
 */
 
 #include "SwitchBox.h"
+#include "ABI.h"
+#include "ABO.h"
 #include "Debounce.h"
 #include "DebugLine.h"
 #include "RotaryEncoder.h"
@@ -27,33 +29,52 @@ char *menuItems[MENU_ITEM_COUNT] = {0};
 //#define BAR_TOP (58)
 NanoRect menuRect = {0, 16, 128, 64};
 
-ButtonState buttonA = {BUTTON_PIN_A};
-ButtonState buttonB = {BUTTON_PIN_B};
+ButtonState buttonRed = {kABIPinShiftRegister, kSinKeyH};
+ButtonState buttonGreen = {kABIPinShiftRegister, kSinKeyG};
+ButtonState buttonBlue = {kABIPinShiftRegister, kSinKeyF};
 
 int read = 0;
 int clear = 0;
 
-// the setup routine runs once when you press reset
+#ifdef USE_ROTARY_INPUT
 RotaryState rotaryState;
+#else
+ButtonState buttonUp = {kABIPinShiftRegister, kSinUp};
+ButtonState buttonDown = {kABIPinShiftRegister, kSinDown};
+ButtonState buttonEnter = {kABIPinShiftRegister, kSinEnter};
+#endif
+
 void setup() {
   display.begin();
   display.clear();
 
-  pinMode(BUTTON_PIN_A, INPUT);
-  pinMode(BUTTON_PIN_B, INPUT);
+  ABInit abinit = {0};
+  abinit.clk = SHIFT_CLK;
+  abinit.data = SHIFT_IN_DATA;
+  abinit.load = SHIFT_IN_LOAD;
+  abinit.read = SHIFT_IN_READ;
+  abi_setup(abinit);
 
-  pinMode(RELAY_INPUT, OUTPUT);
-  pinMode(RELAY_MONITOR, OUTPUT);
-  pinMode(RELAY_AMP, OUTPUT);
-  pinMode(RELAY_SUB, OUTPUT);
+  ABOnit abonit = {0};
+  abonit.clk = SHIFT_CLK;
+  abonit.data = SHIFT_OUT_DATA;
+  abonit.load = SHIFT_OUT_LATCH;
+  abo_setup(abonit);
 
-  rotaryState.pinA.pin = ROTARY_PIN_A;
-  rotaryState.pinB.pin = ROTARY_PIN_B;
-  rotaryState.pinSwitch.pin = ROTARY_PIN_BUTTON;
+#ifdef USE_ROTARY_INPUT
+  rotaryState.pinA.pin = {kABIPinShiftRegister, kSinRotaryA};
+  rotaryState.pinB.pin = {kABIPinShiftRegister, kSinRotaryB};
+  rotaryState.pinSwitch.pin = {kABIPinShiftRegister, kSinRotaryButton};
   rotary_setup(rotaryState);
+#else
+  debounce(buttonUp);
+  debounce(buttonDown);
+  debounce(buttonEnter);
+#endif
 
-  debounce(buttonA);
-  debounce(buttonB);
+  // debounce(buttonRed);
+  // debounce(buttonGreen);
+  // debounce(buttonBlue);
 
   sbsm_setup();
 
@@ -78,8 +99,27 @@ char lastDebug[256] = {0};
 char lastRow0[256] = {0};
 char lastRow1[256] = {0};
 // the loop routine runs over and over again forever:
-int nextTick = 0;
+float avgTick = 0;
+unsigned long ts = micros();
+unsigned long debug_ts = micros();
+
+#define TICK_LENGTH 100
+#define DEBUG_INTERVAL 100000
 void loop() {
+  auto dt = micros() - ts;
+  if (dt < TICK_LENGTH) {
+    delayMicroseconds(TICK_LENGTH - dt);
+  }
+  dt = micros() - ts;
+  avgTick = ((29.0f * avgTick) + dt) / 30.0f;
+  ts += dt;
+
+  abi_loop();
+
+  // debounce(buttonRed);
+  // debounce(buttonGreen);
+  // debounce(buttonBlue);
+
   // digitalWrite(RELAY_INPUT, HIGH);
   // delay(1000);
   // digitalWrite(RELAY_INPUT, LOW);
@@ -93,34 +133,10 @@ void loop() {
   // delay(1000);
   // digitalWrite(RELAY_SUB, LOW);
 
-  // if (millis() > nextTick) {
+  // if (micros() > nextTick) {
   //   Serial.printf("...read/clear: %d/%d  last/value: A:%d/%d, B:%d/%d\n", read, clear, buttonA.last, buttonA.value, buttonB.last, buttonB.value);
-  //   nextTick = millis() + 1000;
+  //   nextTick = micros() + 1000;
   // }
-
-  if (debounce(buttonA)) {
-    if (buttonA.value) {
-      read |= 1;
-    } else {
-      clear |= 1;
-    }
-    // Serial.printf("A) read/clear: %d/%d\n", read, clear);
-  }
-
-  if (debounce(buttonB)) {
-    if (buttonB.value) {
-      read |= 2;
-    } else {
-      clear |= 2;
-    }
-    // Serial.printf("B) read/clear: %d/%d\n", read, clear);
-  }
-
-  // all downs have ups
-  if (read && read == clear) {
-    Serial.printf("TSU: %d\n", read);
-    read = clear = 0;
-  }
 
   // if (debounce_steady(buttonA) && debounce_steady(buttonB) ) {
   //   read = (1 & buttonA.value) | (2 & buttonB.value);
@@ -129,6 +145,7 @@ void loop() {
   // }
 
   sbsm_loop();
+#ifdef USE_ROTARY_INPUT
   RotaryAction action = rotary_loop(rotaryState);
   if (action) {
     switch (action) {
@@ -151,6 +168,22 @@ void loop() {
       break;
     }
   }
+#else
+  if (debounce(buttonUp) && buttonUp.value) {
+    display.menuUp(&menu);
+    menuUpdate = true;
+  }
+  if (debounce(buttonDown) && buttonDown.value) {
+    display.menuDown(&menu);
+    menuUpdate = true;
+  }
+  if (debounce(buttonEnter) && buttonEnter.value) {
+    Trigger event = (Trigger)menu.selection;
+    sbsm_trigger(event);
+    Serial.print("Select: ");
+    Serial.println(triggerNames.find(event)->second.c_str());
+  }
+#endif
   // if (menuDirty) {
   // for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
   //   char c = i == activeOutput ? '*' : ' ';
@@ -199,4 +232,44 @@ void loop() {
   //   display.setFixedFont(ssd1306xled_font6x8);
   //   display.printFixed(0, 8, debug_get(), STYLE_NORMAL);
   // }
+
+  abo_loop();
+
+  dt = micros() - debug_ts;
+  if (dt > DEBUG_INTERVAL) {
+    abi_debug();
+    abo_debug();
+    Serial.printf("Avg Tick: %dµs\n", (int)(avgTick));
+    debug_ts = micros();
+  }
 }
+
+/*
+
+keyboard-matrix style input
+
+  if (debounce(buttonA)) {
+    if (buttonA.value) {
+      read |= 1;
+    } else {
+      clear |= 1;
+    }
+    // Serial.printf("A) read/clear: %d/%d\n", read, clear);
+  }
+
+  if (debounce(buttonB)) {
+    if (buttonB.value) {
+      read |= 2;
+    } else {
+      clear |= 2;
+    }
+    // Serial.printf("B) read/clear: %d/%d\n", read, clear);
+  }
+
+  // all downs have ups
+  if (read && read == clear) {
+    Serial.printf("TSU: %d\n", read);
+    read = clear = 0;
+  }
+
+*/

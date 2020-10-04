@@ -1,10 +1,12 @@
 #pragma once
 
+#include "ABI.h"
+
 #define DEBOUNCE_INTERVAL (50)
 #define STEADY_INTERVAL (300)
 
 typedef struct {
-  int pin;
+  Pin pin;
   int value;
   int last;
   int debounce;
