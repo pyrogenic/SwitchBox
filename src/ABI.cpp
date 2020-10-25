@@ -101,11 +101,10 @@ int abi_digitalRead(const Pin &pin) {
 }
 
 void abi_debug() {
-  for (uint8_t registerIndex = 0; registerIndex < ABI::registerCount; ++registerIndex) {
+  for (int registerIndex = 0; registerIndex < ABI::registerCount; ++registerIndex) {
     Serial_printf("Input Register %d: [ ", registerIndex);
-    for (uint8_t bitIndex = 7; bitIndex >= 0; --bitIndex) {
-      const uint32_t pinId = bitIndex + (registerIndex << 3);
-      const Pin pin = {kABIPinShiftRegister, pinId};
+    for (int bitIndex = 7; bitIndex >= 0; --bitIndex) {
+      const Pin pin = {kABIPinShiftRegister, static_cast<uint32_t>(bitIndex + (BITS_PER_BYTE * registerIndex))};
       bool on = abi_digitalRead(pin);
       if (on) {
         Serial_printf("%d ", bitIndex);
