@@ -22,7 +22,7 @@
 #define WHITE_OLED 1
 #define COLOR_OLED 2
 
-#define DISPLAY_TYPE WHITE_OLED
+#define DISPLAY_TYPE COLOR_OLED
 
 #if DISPLAY_TYPE == WHITE_OLED
 DisplaySSD1306_128x64_I2C display(-1);
@@ -32,7 +32,7 @@ DisplaySSD1306_128x64_I2C display(-1);
 #define COLOR_GREEN WHITE
 #define COLOR_BLUE WHITE
 #elif DISPLAY_TYPE == COLOR_OLED
-#define SPI_FREQ 600000
+#define SPI_FREQ 0
 SPlatformSpiConfig spiConfig = {-1, {SSD1331_CS}, SSD1331_DC, SPI_FREQ, -1, -1};
 DisplaySSD1331_96x64x8_SPI display(SSD1331_RST, spiConfig); // 8, {-1, 10, 9});
 #define DISPLAY_WIDTH (96)
@@ -60,9 +60,6 @@ ButtonState button7 = {kABIPinShiftRegister, kSinKeyH};
 ButtonState button6 = {kABIPinShiftRegister, kSinKeyG};
 ButtonState button5 = {kABIPinShiftRegister, kSinKeyF};
 ButtonState button4 = {kABIPinShiftRegister, kSinKeyE};
-
-int read = 0;
-int clear = 0;
 
 #ifdef USE_ROTARY_INPUT
 RotaryState rotaryState;
@@ -267,7 +264,7 @@ void loop() {
     abi_debug();
     abo_debug();
     debug_ts = micros();
-    Serial.printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
+    Serial_printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
 #ifdef DEBUG_DRAW
     NanoRect rect = {x, y, x + 8, y + 8};
     display.setColor(ts);
@@ -286,7 +283,7 @@ keyboard-matrix style input
     } else {
       clear |= 1;
     }
-    // Serial.printf("A) read/clear: %d/%d\n", read, clear);
+    // Serial_printf("A) read/clear: %d/%d\n", read, clear);
   }
 
   if (debounce(buttonB)) {
@@ -295,12 +292,12 @@ keyboard-matrix style input
     } else {
       clear |= 2;
     }
-    // Serial.printf("B) read/clear: %d/%d\n", read, clear);
+    // Serial_printf("B) read/clear: %d/%d\n", read, clear);
   }
 
   // all downs have ups
   if (read && read == clear) {
-    Serial.printf("TSU: %d\n", read);
+    Serial_printf("TSU: %d\n", read);
     read = clear = 0;
   }
 

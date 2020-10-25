@@ -1,4 +1,5 @@
 #include "ABO.h"
+#include "DebugLine.h"
 #include <Arduino.h>
 
 namespace ABO {
@@ -66,13 +67,13 @@ void abo_digitalWrite(const Pin &pin, bool value) {
     break;
 
   case kABIPinShiftRegister:
-    Serial.printf("digitalWrite(%d, %d)\n", pin.pin, value);
+    Serial_printf("digitalWrite(%d, %d)\n", pin.pin, value);
     const int registerIndex = pin.pin / BITS_PER_BYTE;
     const int bit = 1 << (pin.pin % BITS_PER_BYTE);
     const int bitValue = value ? bit : 0;
-    Serial.printf("  registerIndex: %d\n", registerIndex);
-    Serial.printf("  bit: %d\n", bit);
-    Serial.printf("  bitValue: %d\n", bitValue);
+    Serial_printf("  registerIndex: %d\n", registerIndex);
+    Serial_printf("  bit: %d\n", bit);
+    Serial_printf("  bitValue: %d\n", bitValue);
     ABO::registers[registerIndex] = (ABO::registers[registerIndex] & ~bit) | bitValue;
     abo_debug();
     break;
@@ -84,11 +85,11 @@ void abo_digitalWrite(const Pin &pin, bool value) {
 
 void abo_debug() {
   for (int r = 0; r < ABO::registerCount; r++) {
-    Serial.printf("Output Register %d: [ ", r);
+    Serial_printf("Output Register %d: [ ", r);
     for (int i = 7; i >= 0; --i) {
       bool on = ABO::registers[r] & (1 << i);
       if (on) {
-        Serial.printf("%d ", i);
+        Serial_printf("%d ", i);
       } else {
         Serial.print("_ ");
       }

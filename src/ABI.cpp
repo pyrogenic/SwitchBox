@@ -1,4 +1,5 @@
 #include "ABI.h"
+#include "DebugLine.h"
 #include <Arduino.h>
 
 namespace ABI {
@@ -85,28 +86,29 @@ int abi_digitalRead(const Pin &pin) {
   case kABIPinShiftRegister:
     const int registerIndex = pin.pin / BITS_PER_BYTE;
     if (registerIndex < 0) {
-      Serial.printf("Illegal register index %d for pin %d\n", registerIndex, pin.pin);
+      Serial_printf("Illegal register index %d for pin %d\n", registerIndex, pin.pin);
       return 0;
     } else if (registerIndex >= ABI::registerCount) {
-      Serial.printf("Illegal register index %d for pin %d\n", registerIndex, pin.pin);
+      Serial_printf("Illegal register index %d for pin %d\n", registerIndex, pin.pin);
       return 0;
     }
     const int bit = 1 << (pin.pin % BITS_PER_BYTE);
     return bit == (ABI::registers[registerIndex] & bit);
   }
 
-  Serial.printf("Illegal pin type %d\n", pin.type);
+  Serial_printf("Illegal pin type %d\n", pin.type);
   return 0;
 }
 
 void abi_debug() {
-  for (int registerIndex = 0; registerIndex < ABI::registerCount; ++registerIndex) {
-    Serial.printf("Input Register %d: [ ", registerIndex);
-    for (int bitIndex = 7; bitIndex >= 0; --bitIndex) {
-      const Pin pin = {kABIPinShiftRegister, static_cast<uint32_t>(bitIndex + (BITS_PER_BYTE * registerIndex))};
+  for (uint8_t registerIndex = 0; registerIndex < ABI::registerCount; ++registerIndex) {
+    Serial_printf("Input Register %d: [ ", registerIndex);
+    for (uint8_t bitIndex = 7; bitIndex >= 0; --bitIndex) {
+      const uint32_t pinId = bitIndex + (registerIndex << 3);
+      const Pin pin = {kABIPinShiftRegister, pinId};
       bool on = abi_digitalRead(pin);
       if (on) {
-        Serial.printf("%d ", bitIndex);
+        Serial_printf("%d ", bitIndex);
       } else {
         Serial.print("_ ");
       }

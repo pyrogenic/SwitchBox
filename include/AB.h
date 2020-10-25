@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <cstdint>
 
 #define BITS_PER_BYTE 8
 
@@ -12,7 +11,7 @@ typedef enum {
 
 typedef struct {
   PinType type;
-  int pin;
+  uint32_t pin;
 } Pin;
 
 #define AB_DELAY(N) delayMicroseconds(5 * N)

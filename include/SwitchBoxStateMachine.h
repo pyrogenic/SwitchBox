@@ -5,9 +5,10 @@
 #undef max
 #undef LITTLE_ENDIAN
 
-#include <FunctionFSM.h>
 #include <map>
 #include <string>
+
+#include "Fsm.h"
 
 enum Trigger {
   kTriggerToggleInput,
@@ -30,8 +31,8 @@ enum Trigger {
   kTriggerPreampBypassed,
 };
 
-extern std::map<FunctionFsm *, const std::string> stateMachineNames;
-extern std::map<FunctionState *, const std::string> stateNames;
+extern std::map<Fsm *, const std::string> stateMachineNames;
+extern std::map<const State *, const std::string> stateNames;
 extern std::map<Trigger, const std::string> triggerNames;
 
 const std::string &sbsm_trigger_name(const Trigger event);
