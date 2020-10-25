@@ -34,7 +34,7 @@ DisplaySSD1306_128x64_I2C display(-1);
 #elif DISPLAY_TYPE == COLOR_OLED
 #define SPI_FREQ 0
 SPlatformSpiConfig spiConfig = {-1, {SSD1331_CS}, SSD1331_DC, SPI_FREQ, -1, -1};
-DisplaySSD1331_96x64x8_SPI display(SSD1331_RST, spiConfig); // 8, {-1, 10, 9});
+DisplaySSD1331_96x64x8_SPI display(SSD1331_RES, spiConfig); // 8, {-1, 10, 9});
 #define DISPLAY_WIDTH (96)
 #define COLOR_BLACK RGB_COLOR8(0, 0, 0)
 #define COLOR_RED RGB_COLOR8(0xFFFF, 0, 0)

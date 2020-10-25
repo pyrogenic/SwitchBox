@@ -33,6 +33,12 @@
 // // Connected to SW on KY-040
 // #define ROTARY_PIN_BUTTON 10
 
+#define XIAO 1
+#define MINI 2
+#define NANO 3
+
+#if DEVICE == XIAO
+
 // SR_IN CLK, SH_OUT CLK
 #define SHIFT_CLK 0
 
@@ -47,7 +53,7 @@
 #define SSD1306_SDA 4
 #define SSD1306_SCL 5
 #define SSD1331_DC 4
-#define SSD1331_RST 5
+#define SSD1331_RES 5
 
 // Need a 74595 for the latched output, otherwise the serially-loaded bits will ghost over the relays
 // !OE should be held low
@@ -64,6 +70,35 @@
 #define SSD1331_SCL 8
 #define SSD1331_CS 9
 #define SSD1331_SDA 10
+
+#endif
+
+#if DEVICE == NANO
+// SSD1331 Nano/Atmega328 PINS: connect LCD to D5 (D/C), D4 (CS), D3 (RES), D11(SDA), D13(SCL)
+#define SSD1331_SCL 13
+#define SSD1331_SDA 11
+#define SSD1331_RES 3
+#define SSD1331_DC 5
+#define SSD1331_CS 4
+
+// SR_IN CLK, SH_OUT CLK
+#define SHIFT_CLK 6
+
+// SR_IN Q
+#define SHIFT_IN_DATA 7
+// SR_IN SH (take low to load)
+#define SHIFT_IN_LOAD 8
+// SR_IN CLK_INH (take low to read)
+#define SHIFT_IN_READ 9
+
+// Need a 74595 for the latched output, otherwise the serially-loaded bits will ghost over the relays
+// !OE should be held low
+// SR_OUT SER
+#define SHIFT_OUT_DATA 10
+// SR_OUT RCLK
+#define SHIFT_OUT_LATCH 12
+
+#endif
 
 typedef enum {
   // // Connected to CLK on KY-040
