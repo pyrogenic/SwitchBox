@@ -20,12 +20,13 @@ const char *debug_get() {
 }
 
 void Serial_printf(const char *fmt, ...) {
-  if (!Serial.available()) {
+  if (!Serial) {
     return;
   }
   va_list args;
   va_start(args, fmt);
-  vsprintf(buffer, fmt, args);
+  char buffer[255];
+  vsnprintf(buffer, 255, fmt, args);
   va_end(args);
   Serial.print(buffer);
 }

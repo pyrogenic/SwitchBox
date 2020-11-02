@@ -18,6 +18,10 @@
 #include "RotaryEncoder.h"
 #include "SwitchBoxStateMachine.h"
 #include <lcdgfx.h>
+#include <uRTCLib.h>
+
+#define PROGNAME "SwitchBox"
+#define VERSION "0.4.1"
 
 #define WHITE_OLED 1
 #define COLOR_OLED 2
@@ -76,7 +80,56 @@ ButtonState buttonDown = {kABIPinShiftRegister, kSinDown};
 ButtonState buttonEnter = {kABIPinShiftRegister, kSinEnter};
 #endif
 
+uRTCLib rtc;
+void setup_rtc() {
+#ifdef ARDUINO_ARCH_ESP8266
+  URTCLIB_WIRE.begin(0, 2); // D3 and D4 on ESP8266
+#else
+  URTCLIB_WIRE.begin();
+#endif
+
+  rtc.set_rtc_address(0x68);
+  rtc.set_model(URTCLIB_MODEL_DS3231);
+  rtc.refresh();
+  Serial_printf("Lost power? %s\n", rtc.lostPower() ? "Yes" : "No");
+  Serial_printf("Year: 20%02d\n", rtc.year());
+}
+
+void printRTCTemperature() {
+  Serial_printf("%2d.%02d deg.\n", rtc.temp() / 100, rtc.temp() % 100);
+}
+
+void printRTCTime(bool aPrintLongFormat, bool aDoRefresh) {
+  if (aDoRefresh) {
+    rtc.refresh();
+  }
+  char tTimeString[9]; // 8 + trailing NUL character
+#if defined(__AVR__)
+  if (aPrintLongFormat) {
+    sprintf_P(tTimeString, PSTR("%02hhu:%02hhu:%02hhu"), rtc.hour(), rtc.minute(), rtc.second());
+  } else {
+    sprintf_P(tTimeString, PSTR("%02u:%02u"), rtc.hour(), rtc.minute());
+  }
+#else
+  if (aPrintLongFormat) {
+    Serial_printf(tTimeString, "%02u:%02u:%02u\n", rtc.hour(), rtc.minute(), rtc.second());
+  } else {
+    Serial_printf(tTimeString, "%02u:%02u\n", rtc.hour(), rtc.minute());
+  }
+#endif
+}
+
 void setup() {
+  // initialize serial communication at 9600 bits per second:
+  Serial.begin(9600);
+  while (!Serial)
+    ; // delay for Leonardo
+      // Just to know which program is running on my Arduino
+  Serial.println(F("START " __FILE__));
+  Serial.println(F(PROGNAME " Version " VERSION " built on " __DATE__));
+
+  setup_rtc();
+
   display.begin();
   display.clear();
 
@@ -133,11 +186,6 @@ void setup() {
 #else
   display.showMenu(&menu);
 #endif
-
-  // initialize serial communication at 9600 bits per second:
-  Serial.begin(9600);
-  delay(300);
-  Serial.println("Serial Begin");
 }
 
 int encoderPosCount = 0;
@@ -289,10 +337,12 @@ void loop() {
 #endif
   dt = micros() - debug_ts;
   if (dt > DEBUG_INTERVAL) {
-    abi_debug();
-    abo_debug();
+    // abi_debug();
+    // abo_debug();
     debug_ts = micros();
     Serial_printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
+    printRTCTime(true, true);
+    printRTCTemperature();
 #ifdef DEBUG_COLOR_DRAW
     NanoRect rect = {x, y, x + 8, y + 8};
     display.setColor(ts);
