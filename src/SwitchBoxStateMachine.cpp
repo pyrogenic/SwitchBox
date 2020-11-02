@@ -147,7 +147,7 @@ void sbsm_setup() {
   triggerNames.insert({kTriggerSelectInputDigital, "Digital In"});
   triggerNames.insert({kTriggerSelectInputAnalog, "Analog In"});
 
-  triggerNames.insert({kTriggerToggleSubwoofer, "Toggle Subwoofer"});
+  triggerNames.insert({kTriggerToggleSubwoofer, "Toggle Sub "});
   triggerNames.insert({kTriggerSubwooferBypass, "Subwoofer Off"});
   triggerNames.insert({kTriggerSubwooferEngage, "Subwoofer On"});
 

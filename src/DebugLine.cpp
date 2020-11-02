@@ -20,6 +20,9 @@ const char *debug_get() {
 }
 
 void Serial_printf(const char *fmt, ...) {
+  if (!Serial.available()) {
+    return;
+  }
   va_list args;
   va_start(args, fmt);
   vsprintf(buffer, fmt, args);

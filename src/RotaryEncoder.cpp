@@ -4,18 +4,27 @@
 #include <Arduino.h>
 
 void rotary_setup(RotaryState &state) {
-  abi_pinMode(state.pinA.pin, INPUT);
-  abi_pinMode(state.pinB.pin, INPUT);
-  abi_pinMode(state.pinSwitch.pin, INPUT);
-
-  abo_digitalWrite(state.pinA.pin, HIGH);
-  abo_digitalWrite(state.pinB.pin, HIGH);
-  abo_digitalWrite(state.pinSwitch.pin, HIGH);
+  if (state.pinA.pin.type == kABIPinHardware) {
+    abi_pinMode(state.pinB.pin, INPUT);
+    abo_digitalWrite(state.pinA.pin, HIGH);
+  }
+  debounce(state.pinA);
+  if (state.pinB.pin.type == kABIPinHardware) {
+    abi_pinMode(state.pinA.pin, INPUT);
+    abo_digitalWrite(state.pinB.pin, HIGH);
+  }
+  debounce(state.pinB);
+  if (state.pinSwitch.pin.type == kABIPinHardware) {
+    abi_pinMode(state.pinSwitch.pin, INPUT);
+    abo_digitalWrite(state.pinSwitch.pin, HIGH);
+  }
+  debounce(state.pinSwitch);
 }
 
 unsigned long ms = millis();
 
 RotaryAction rotary_loop(RotaryState &state) {
+  return kRotaryActionNone;
   if (debounce(state.pinSwitch)) {
     if (!state.pinSwitch.value) {
       return kRotaryActionClick;

@@ -96,7 +96,8 @@
 // SR_OUT SER
 #define SHIFT_OUT_DATA 10
 // SR_OUT RCLK
-#define SHIFT_OUT_LATCH 12
+// trying A0 b/c D12 didn't seem to work
+#define SHIFT_OUT_LATCH 14
 
 #endif
 

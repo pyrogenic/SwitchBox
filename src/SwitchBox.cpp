@@ -23,6 +23,11 @@
 #define COLOR_OLED 2
 
 #define DISPLAY_TYPE COLOR_OLED
+//#define USE_ROTARY_INPUT
+#define USE_BUTTON_NAV
+//#define DEBUG_COLOR_DRAW
+
+#define MENU_MODE_SMOOTH 0
 
 #if DISPLAY_TYPE == WHITE_OLED
 DisplaySSD1306_128x64_I2C display(-1);
@@ -34,13 +39,14 @@ DisplaySSD1306_128x64_I2C display(-1);
 #elif DISPLAY_TYPE == COLOR_OLED
 #define SPI_FREQ 0
 SPlatformSpiConfig spiConfig = {-1, {SSD1331_CS}, SSD1331_DC, SPI_FREQ, -1, -1};
-DisplaySSD1331_96x64x8_SPI display(SSD1331_RES, spiConfig); // 8, {-1, 10, 9});
+DisplaySSD1331_96x64x16_SPI display(SSD1331_RES, spiConfig); // 8, {-1, 10, 9});
 #define DISPLAY_WIDTH (96)
-#define COLOR_BLACK RGB_COLOR8(0, 0, 0)
-#define COLOR_RED RGB_COLOR8(0xFFFF, 0, 0)
-#define COLOR_GREEN RGB_COLOR8(0, 0xFFFF, 0)
-#define COLOR_BLUE RGB_COLOR8(0, 0, 0xFFFF)
-#define COLOR_WHITE RGB_COLOR8(0xFFFF, 0xFFFF, 0xFFFF)
+#define COLOR_BLACK RGB_COLOR16(0, 0, 0)
+#define COLOR_RED RGB_COLOR16(0xFFFF, 0, 0)
+#define COLOR_GREEN RGB_COLOR16(0, 0xFFFF, 0)
+#define COLOR_BLUE RGB_COLOR16(0, 0, 0xFFFF)
+#define COLOR_YELLOW RGB_COLOR16(0xFFFF, 0xFFFF, 0)
+#define COLOR_WHITE RGB_COLOR16(0xFFFF, 0xFFFF, 0xFFFF)
 #else
 #error No display type specified
 #endif
@@ -63,7 +69,8 @@ ButtonState button4 = {kABIPinShiftRegister, kSinKeyE};
 
 #ifdef USE_ROTARY_INPUT
 RotaryState rotaryState;
-#else
+#endif
+#ifdef USE_BUTTON_NAV
 ButtonState buttonUp = {kABIPinShiftRegister, kSinUp};
 ButtonState buttonDown = {kABIPinShiftRegister, kSinDown};
 ButtonState buttonEnter = {kABIPinShiftRegister, kSinEnter};
@@ -91,7 +98,8 @@ void setup() {
   rotaryState.pinB.pin = {kABIPinShiftRegister, kSinRotaryB};
   rotaryState.pinSwitch.pin = {kABIPinShiftRegister, kSinRotaryButton};
   rotary_setup(rotaryState);
-#else
+#endif
+#ifdef USE_BUTTON_NAV
   debounce(buttonUp);
   debounce(buttonDown);
   debounce(buttonEnter);
@@ -117,11 +125,19 @@ void setup() {
     display.showMenuSmooth(&menu);
   */
   display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect());
-  display.setFixedFont(ssd1306xled_font6x8);
+  display.setFreeFont(free_calibri11x12);
+  display.setFontSpacing(1);
+  display.setColor(COLOR_YELLOW);
+#if MENU_MODE_SMOOTH
   display.showMenuSmooth(&menu);
+#else
+  display.showMenu(&menu);
+#endif
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
+  delay(300);
+  Serial.println("Serial Begin");
 }
 
 int encoderPosCount = 0;
@@ -158,6 +174,9 @@ void loop() {
 
 #ifdef USE_ROTARY_INPUT
   RotaryAction action = rotary_loop(rotaryState);
+  // if (action != kRotaryActionNone) {
+  //   Serial_printf("RotaryAction: %d\n", action);
+  // }
   if (action) {
     switch (action) {
     case kRotaryActionClick: {
@@ -179,7 +198,8 @@ void loop() {
       break;
     }
   }
-#else
+#endif
+#ifdef USE_BUTTON_NAV
   if (debounce(buttonUp) && buttonUp.value) {
     display.menuUp(&menu);
     menuUpdate = true;
@@ -197,8 +217,14 @@ void loop() {
 #endif
 
   if (menuUpdate) {
-    display.setFixedFont(ssd1306xled_font6x8);
+    display.setFreeFont(free_calibri11x12);
+    display.setFontSpacing(1);
+    display.setColor(COLOR_YELLOW);
+#if MENU_MODE_SMOOTH
     display.updateMenuSmooth(&menu);
+#else
+    display.updateMenu(&menu);
+#endif
   }
 
   char row0[CHAR_WIDTH_LG + 1] = {0};
@@ -211,7 +237,9 @@ void loop() {
     display.setColor(COLOR_BLACK);
     display.fillRect(rect);
     display.setColor(COLOR_RED);
-    display.setFixedFont(ssd1306xled_font6x8);
+    // display.setFixedFont(ssd1306xled_font6x8);
+    display.setFreeFont(free_calibri11x12);
+    display.setFontSpacing(1);
     display.printFixed(0, 0, row0, STYLE_NORMAL);
   }
 
@@ -243,7 +271,7 @@ void loop() {
 
   abo_loop();
 
-#ifdef DEBUG_DRAW
+#ifdef DEBUG_COLOR_DRAW
   if (debounce(button4) && !button4.value) {
     x--;
   }
@@ -265,7 +293,7 @@ void loop() {
     abo_debug();
     debug_ts = micros();
     Serial_printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
-#ifdef DEBUG_DRAW
+#ifdef DEBUG_COLOR_DRAW
     NanoRect rect = {x, y, x + 8, y + 8};
     display.setColor(ts);
     display.fillRect(rect);

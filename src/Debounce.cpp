@@ -2,6 +2,12 @@
 
 #include <Arduino.h>
 
+#define DEBUG_DEBOUNCE
+
+#ifdef DEBUG_DEBOUNCE
+#include "DebugLine.h";
+#endif
+
 bool debounce(ButtonState &buttonState, bool raw) {
   // read the state of the switch into a local variable:
   int reading = !abi_digitalRead(buttonState.pin);
@@ -15,6 +21,9 @@ bool debounce(ButtonState &buttonState, bool raw) {
     // reset the debouncing timer
     buttonState.last = reading;
     buttonState.debounce = millis();
+#ifdef DEBUG_DEBOUNCE
+    Serial_printf("Debounce: ~%d~ %d.%d\n", reading, buttonState.pin.type, buttonState.pin.pin);
+#endif
   }
   int dt = (millis() - buttonState.debounce);
   if (dt > (raw ? 1 : DEBOUNCE_INTERVAL)) {
@@ -27,6 +36,9 @@ bool debounce(ButtonState &buttonState, bool raw) {
     // if the button state has changed:
     if (reading != buttonState.value) {
       buttonState.value = reading;
+#ifdef DEBUG_DEBOUNCE
+      Serial_printf("Debounce: UP: %d.%d\n", buttonState.pin.type, buttonState.pin.pin);
+#endif
       return true;
     }
   }
