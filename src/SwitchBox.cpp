@@ -71,10 +71,10 @@ NanoRect menuRect() {
   return result;
 }
 
-ButtonState button7 = {kABIPinShiftRegister, kSinKeyH};
-ButtonState button6 = {kABIPinShiftRegister, kSinKeyG};
-ButtonState button5 = {kABIPinShiftRegister, kSinKeyF};
-ButtonState button4 = {kABIPinShiftRegister, kSinKeyE};
+ButtonState buttonYellow = {kABIPinShiftRegister, kSinKeyH};
+ButtonState buttonBlue = {kABIPinShiftRegister, kSinKeyG};
+ButtonState buttonGreen = {kABIPinShiftRegister, kSinKeyF};
+ButtonState buttonRed = {kABIPinShiftRegister, kSinKeyE};
 
 #if USE_ROTARY_INPUT
 RotaryState rotaryState;
@@ -87,7 +87,7 @@ ButtonState buttonEnter = {kABIPinShiftRegister, kSinEnter};
 
 OneWire oneWire(ONE_WIRE_BUS);
 Temperature temperature(oneWire);
-RealTimeClock rtc(true);
+RealTimeClock rtc;
 
 void printRTCTemperature() {
   // Serial_printf("%2d.%02d°\n", rtc.temp() / 100, rtc.temp() % 100);
@@ -162,10 +162,10 @@ void setup() {
   debounce(buttonEnter);
 #endif
 
-  debounce(button4);
-  debounce(button5);
-  debounce(button6);
-  debounce(button7);
+  debounce(buttonRed);
+  debounce(buttonGreen);
+  debounce(buttonBlue);
+  debounce(buttonYellow);
 
   sbsm_setup();
 
@@ -374,6 +374,14 @@ void loop() {
 
   abo_loop();
 
+  if (debounce(buttonRed) && buttonRed.value) {
+  }
+
+  if (debounce(buttonYellow) && buttonYellow.value) {
+    sbsm_trigger(kTriggerSelectInputAnalog);
+    sbsm_trigger(kTriggerActivateMonitor);
+  }
+
 #if DEBUG_COLOR_DRAW
   if (debounce(button4) && !button4.value) {
     x--;
@@ -392,7 +400,6 @@ void loop() {
 #endif
   dt = micros() - debug_ts;
   if (dt > DEBUG_INTERVAL) {
-
     // abi_debug();
     // abo_debug();
 

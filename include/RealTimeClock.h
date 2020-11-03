@@ -21,7 +21,7 @@ typedef struct TimeFormat {
 
 class RealTimeClock {
 public:
-  RealTimeClock(bool verbose);
+  RealTimeClock() {}
 
   void setup();
 
