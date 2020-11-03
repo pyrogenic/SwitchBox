@@ -15,10 +15,15 @@
 #include "ABO.h"
 #include "Debounce.h"
 #include "DebugLine.h"
+#include "RealTimeClock.h"
 #include "RotaryEncoder.h"
 #include "SwitchBoxStateMachine.h"
+#include "Temperature.h"
 #include <lcdgfx.h>
-#include <uRTCLib.h>
+
+#ifndef PSTR
+#define PSTR(A) A
+#endif
 
 #define PROGNAME "SwitchBox"
 #define VERSION "0.4.1"
@@ -27,9 +32,9 @@
 #define COLOR_OLED 2
 
 #define DISPLAY_TYPE COLOR_OLED
-//#define USE_ROTARY_INPUT
-#define USE_BUTTON_NAV
-//#define DEBUG_COLOR_DRAW
+#define USE_ROTARY_INPUT 0
+#define USE_BUTTON_NAV 1
+#define DEBUG_COLOR_DRAW 0
 
 #define MENU_MODE_SMOOTH 0
 
@@ -62,7 +67,7 @@ char *menuItems[MENU_ITEM_COUNT] = {0};
 NanoRect menuRect() {
   //{0, 16, DISPLAY_WIDTH, DISPLAY_HEIGHT};
   auto result = display.rect();
-  result.p1.y += 16;
+  result.p1.y = result.p2.y - 42;
   return result;
 }
 
@@ -71,64 +76,63 @@ ButtonState button6 = {kABIPinShiftRegister, kSinKeyG};
 ButtonState button5 = {kABIPinShiftRegister, kSinKeyF};
 ButtonState button4 = {kABIPinShiftRegister, kSinKeyE};
 
-#ifdef USE_ROTARY_INPUT
+#if USE_ROTARY_INPUT
 RotaryState rotaryState;
 #endif
-#ifdef USE_BUTTON_NAV
+#if USE_BUTTON_NAV
 ButtonState buttonUp = {kABIPinShiftRegister, kSinUp};
 ButtonState buttonDown = {kABIPinShiftRegister, kSinDown};
 ButtonState buttonEnter = {kABIPinShiftRegister, kSinEnter};
 #endif
 
-uRTCLib rtc;
-void setup_rtc() {
-#ifdef ARDUINO_ARCH_ESP8266
-  URTCLIB_WIRE.begin(0, 2); // D3 and D4 on ESP8266
-#else
-  URTCLIB_WIRE.begin();
-#endif
-
-  rtc.set_rtc_address(0x68);
-  rtc.set_model(URTCLIB_MODEL_DS3231);
-  rtc.refresh();
-  Serial_printf("Lost power? %s\n", rtc.lostPower() ? "Yes" : "No");
-  Serial_printf("Year: 20%02d\n", rtc.year());
-}
+OneWire oneWire(ONE_WIRE_BUS);
+Temperature temperature(oneWire);
+RealTimeClock rtc(true);
 
 void printRTCTemperature() {
-  Serial_printf("%2d.%02d deg.\n", rtc.temp() / 100, rtc.temp() % 100);
+  // Serial_printf("%2d.%02d°\n", rtc.temp() / 100, rtc.temp() % 100);
 }
 
-void printRTCTime(bool aPrintLongFormat, bool aDoRefresh) {
-  if (aDoRefresh) {
-    rtc.refresh();
-  }
-  char tTimeString[9]; // 8 + trailing NUL character
-#if defined(__AVR__)
-  if (aPrintLongFormat) {
-    sprintf_P(tTimeString, PSTR("%02hhu:%02hhu:%02hhu"), rtc.hour(), rtc.minute(), rtc.second());
-  } else {
-    sprintf_P(tTimeString, PSTR("%02u:%02u"), rtc.hour(), rtc.minute());
-  }
-#else
-  if (aPrintLongFormat) {
-    Serial_printf(tTimeString, "%02u:%02u:%02u\n", rtc.hour(), rtc.minute(), rtc.second());
-  } else {
-    Serial_printf(tTimeString, "%02u:%02u\n", rtc.hour(), rtc.minute());
-  }
-#endif
+void printRTCTime(bool aDoRefresh = true) {
+  char tTimeString[13];
+  rtc.format(tTimeString, 13, {true, kTF_amPm, true}, aDoRefresh);
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {true, kTF_24H, true});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {true, kTF_12H, true});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {true, kTF_amPm, false});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {true, kTF_24H, false});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {true, kTF_12H, false});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {false, kTF_amPm, true});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {false, kTF_24H, true});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {false, kTF_12H, true});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {false, kTF_amPm, false});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {false, kTF_24H, false});
+  Serial.println(tTimeString);
+  rtc.format(tTimeString, 13, {false, kTF_12H, false});
+  Serial.println(tTimeString);
 }
+
+TimeFormat headerTimeFormat = new TimeFormat();
 
 void setup() {
-  // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
   while (!Serial)
     ; // delay for Leonardo
-      // Just to know which program is running on my Arduino
+
   Serial.println(F("START " __FILE__));
   Serial.println(F(PROGNAME " Version " VERSION " built on " __DATE__));
 
-  setup_rtc();
+  rtc.setup();
+  temperature.setup();
 
   display.begin();
   display.clear();
@@ -146,13 +150,13 @@ void setup() {
   abonit.load = SHIFT_OUT_LATCH;
   abo_setup(abonit);
 
-#ifdef USE_ROTARY_INPUT
+#if USE_ROTARY_INPUT
   rotaryState.pinA.pin = {kABIPinShiftRegister, kSinRotaryA};
   rotaryState.pinB.pin = {kABIPinShiftRegister, kSinRotaryB};
   rotaryState.pinSwitch.pin = {kABIPinShiftRegister, kSinRotaryButton};
   rotary_setup(rotaryState);
 #endif
-#ifdef USE_BUTTON_NAV
+#if USE_BUTTON_NAV
   debounce(buttonUp);
   debounce(buttonDown);
   debounce(buttonEnter);
@@ -190,11 +194,14 @@ void setup() {
 
 int encoderPosCount = 0;
 // bool menuDirty = true;
-bool menuUpdate = true;
 
-char lastDebug[256] = {0};
-char lastRow0[256] = {0};
-char lastRow1[256] = {0};
+#define LABEL_STRING_BUFFER_SIZE (42)
+char lastLabel0[LABEL_STRING_BUFFER_SIZE] = {0};
+char lastLabel1[LABEL_STRING_BUFFER_SIZE] = {0};
+char lastLabel2[LABEL_STRING_BUFFER_SIZE] = {0};
+char lastLabel3[LABEL_STRING_BUFFER_SIZE] = {0};
+char lastTime[TIME_STRING_BUFFER_SIZE] = {0};
+
 // the loop routine runs over and over again forever:
 float avgTick = 0;
 unsigned long ts = micros();
@@ -208,6 +215,8 @@ lcdint_t y = 0;
 
 #define TICK_LENGTH 100
 #define DEBUG_INTERVAL 1000000
+
+bool menuUpdate = true;
 void loop() {
   auto dt = micros() - ts;
   if (dt < TICK_LENGTH) {
@@ -220,7 +229,7 @@ void loop() {
   abi_loop();
   sbsm_loop();
 
-#ifdef USE_ROTARY_INPUT
+#if USE_ROTARY_INPUT
   RotaryAction action = rotary_loop(rotaryState);
   // if (action != kRotaryActionNone) {
   //   Serial_printf("RotaryAction: %d\n", action);
@@ -247,7 +256,7 @@ void loop() {
     }
   }
 #endif
-#ifdef USE_BUTTON_NAV
+#if USE_BUTTON_NAV
   if (debounce(buttonUp) && buttonUp.value) {
     display.menuUp(&menu);
     menuUpdate = true;
@@ -265,61 +274,107 @@ void loop() {
 #endif
 
   if (menuUpdate) {
+    menuUpdate = false;
     display.setFreeFont(free_calibri11x12);
     display.setFontSpacing(1);
-    display.setColor(COLOR_YELLOW);
+    display.setColor(COLOR_WHITE);
 #if MENU_MODE_SMOOTH
     display.updateMenuSmooth(&menu);
 #else
     display.updateMenu(&menu);
 #endif
+    lastLabel0[0] = 0;
+    lastLabel1[0] = 0;
+    lastTime[0] = 0;
   }
 
-  char row0[CHAR_WIDTH_LG + 1] = {0};
-  char row1[CHAR_WIDTH_SM + 1] = {0};
-  snprintf(row0, CHAR_WIDTH_LG, "%s > %s", sbsm_input_label().c_str(), sbsm_output_label().c_str());
-  snprintf(row1, CHAR_WIDTH_SM, "%s", sbsm_subwoofer_label().c_str());
-  if (strcmp(lastRow0, row0)) {
-    strcpy(lastRow0, row0);
-    NanoRect rect = {0, 0, DISPLAY_WIDTH, 8};
+  // char row0[CHAR_WIDTH_LG + 1] = {0};
+  // char row1[CHAR_WIDTH_SM + 1] = {0};
+  char label0[LABEL_STRING_BUFFER_SIZE] = {0};
+  char label1[LABEL_STRING_BUFFER_SIZE] = {0};
+  char label2[LABEL_STRING_BUFFER_SIZE] = {0};
+  char label3[LABEL_STRING_BUFFER_SIZE] = {0};
+  char time[TIME_STRING_BUFFER_SIZE] = {0};
+
+  snprintf(label0, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_input_label().c_str());
+  snprintf(label1, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_output_label().c_str());
+  snprintf(label2, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_subwoofer_label().c_str());
+  headerTimeFormat.amPm = kTF_12H;
+  headerTimeFormat.pad = false;
+  headerTimeFormat.seconds = false;
+  rtc.format(time, TIME_STRING_BUFFER_SIZE, headerTimeFormat, true);
+
+  if (strncmp(lastLabel0, label0, LABEL_STRING_BUFFER_SIZE) || strncmp(lastLabel1, label1, LABEL_STRING_BUFFER_SIZE) || strncmp(lastLabel2, label2, LABEL_STRING_BUFFER_SIZE) ||
+      strncmp(lastLabel3, label3, LABEL_STRING_BUFFER_SIZE) || strncmp(lastTime, time, TIME_STRING_BUFFER_SIZE)) {
+    strncpy(lastLabel0, label0, LABEL_STRING_BUFFER_SIZE);
+    strncpy(lastLabel1, label1, LABEL_STRING_BUFFER_SIZE);
+    strncpy(lastLabel2, label2, LABEL_STRING_BUFFER_SIZE);
+    strncpy(lastLabel3, label3, LABEL_STRING_BUFFER_SIZE);
+    strncpy(lastTime, time, TIME_STRING_BUFFER_SIZE);
+
+    // INPUT  |_10:20_|  OUTPUT
+    auto textWidth = display.getFont().getTextSize(time);
+    auto left = display.width() / 2 - textWidth / 2;
+    auto right = left + textWidth;
+    NanoRect timeRect = {left, 0, right, 9};
+    display.setColor(0x31C8);
+    display.fillRect(timeRect);
+    NanoRect rect = timeRect;
+    rect = {left, 0, right, 8};
     display.setColor(COLOR_BLACK);
     display.fillRect(rect);
-    display.setColor(COLOR_RED);
-    // display.setFixedFont(ssd1306xled_font6x8);
+    display.setColor(0x5371);
+    display.setFixedFont(digital_font5x7_AB);
+    display.printFixed(rect.p1.x, 0, time, STYLE_NORMAL);
+
+    textWidth = display.getFont().getTextSize("IN");
+    left = timeRect.p1.x / 2 - textWidth / 2;
+    right = left + textWidth;
+    rect = {left, 0, right, 8};
+    display.setColor(COLOR_BLACK);
+    display.fillRect(rect);
+    display.setColor(COLOR_WHITE);
+    display.printFixed(rect.p1.x, rect.p1.y + 2, "IN");
+
+    textWidth = display.getFont().getTextSize("OUT");
+    Serial_printf("timeRect.p2.x = %d\n", timeRect.p2.x);
+    Serial_printf("textWidth = %d\n", textWidth);
+    Serial_printf("display.width() = %d\n", display.width());
+    left = timeRect.p2.x + (display.width() - timeRect.p2.x - textWidth) / 2;
+    right = left + textWidth;
+    Serial_printf("left, right = %d, %d\n", left, right);
+    rect = {left, 0, right, 8};
+    display.setColor(COLOR_BLACK);
+    display.fillRect(rect);
+    display.setColor(COLOR_WHITE);
+    display.printFixed(rect.p1.x, rect.p1.y + 2, "OUT");
+
+    rect = {0, timeRect.p2.y + 1, display.width(), timeRect.p2.y + 11};
+    display.setColor(COLOR_BLACK);
+    display.fillRect(rect);
+    display.setColor(COLOR_WHITE);
     display.setFreeFont(free_calibri11x12);
-    display.setFontSpacing(1);
-    display.printFixed(0, 0, row0, STYLE_NORMAL);
+    display.printFixed(rect.p1.x, rect.p1.y, label0);
+    textWidth = display.getFont().getTextSize(label1);
+    rect = {display.width() - textWidth, rect.p1.y, display.width(), rect.p2.y};
+    display.printFixed(rect.p1.x, rect.p1.y, label1);
+
+    /*
+
+        rect = {rect.p1.x, rect.p2.y + 1, rect.p2.x, rect.p2.y + 1 + 11};
+        display.setColor(COLOR_BLACK);
+        display.fillRect(rect);
+
+        display.setColor(COLOR_WHITE);
+        display.setFixedFont(free_calibri11x12_latin);
+        display.printFixed(rect.p1.x, rect.p1.y, label0, STYLE_NORMAL);
+        display.printFixed(rect.p2.x - display.getFont().getTextSize(label1), rect.p1.y, label1, STYLE_NORMAL);
+      */
   }
-
-  if (strcmp(lastRow1, row1)) {
-    strcpy(lastRow1, row1);
-    NanoRect rect = {0, 9, DISPLAY_WIDTH, 14};
-    display.setColor(COLOR_BLACK);
-    display.fillRect(rect);
-    display.setColor(COLOR_GREEN);
-    display.setFixedFont(ssd1306xled_font5x7);
-    display.printFixed(DISPLAY_WIDTH - strlen(row1) * 6, 9, row1, STYLE_NORMAL);
-  }
-
-  /*
-    // menuUpdate = false;
-
-    // if (strcmp(lastDebug, debug_get())) {
-    //   strcpy(lastDebug, debug_get());
-    //   NanoRect rect = {0, 8, DISPLAY_WIDTH, 16};
-    //   display.setColor(COLOR_BLACK);
-    //   display.fillRect(rect);
-    //   display.setColor(COLOR_WHITE);
-    //   display.setFixedFont(ssd1306xled_font6x8);
-    //   display.printFixed(0, 8, debug_get(), STYLE_NORMAL);
-    // }
-
-
-    */
 
   abo_loop();
 
-#ifdef DEBUG_COLOR_DRAW
+#if DEBUG_COLOR_DRAW
   if (debounce(button4) && !button4.value) {
     x--;
   }
@@ -337,17 +392,22 @@ void loop() {
 #endif
   dt = micros() - debug_ts;
   if (dt > DEBUG_INTERVAL) {
+
     // abi_debug();
     // abo_debug();
-    debug_ts = micros();
-    Serial_printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
-    printRTCTime(true, true);
-    printRTCTemperature();
-#ifdef DEBUG_COLOR_DRAW
+
+    // Serial_printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
+
+    // printRTCTime();
+    // printRTCTemperature();
+
+#if DEBUG_COLOR_DRAW
     NanoRect rect = {x, y, x + 8, y + 8};
     display.setColor(ts);
     display.fillRect(rect);
 #endif
+
+    debug_ts = micros();
   }
 }
 
