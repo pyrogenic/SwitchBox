@@ -19,6 +19,8 @@
 #include "RotaryEncoder.h"
 #include "SwitchBoxStateMachine.h"
 #include "Temperature.h"
+#include <SoftwareSerial.h>
+#include <Wire.h>
 #include <lcdgfx.h>
 
 #ifndef PSTR
@@ -36,7 +38,7 @@
 #define USE_BUTTON_NAV 1
 #define DEBUG_COLOR_DRAW 0
 
-#define MENU_MODE_SMOOTH 0
+#define MENU_MODE_SMOOTH 1
 
 #if DISPLAY_TYPE == WHITE_OLED
 DisplaySSD1306_128x64_I2C display(-1);
@@ -56,16 +58,20 @@ DisplaySSD1331_96x64x16_SPI display(SSD1331_RES, spiConfig); // 8, {-1, 10, 9});
 #define COLOR_BLUE RGB_COLOR16(0, 0, 0xFFFF)
 #define COLOR_YELLOW RGB_COLOR16(0xFFFF, 0xFFFF, 0)
 #define COLOR_WHITE RGB_COLOR16(0xFFFF, 0xFFFF, 0xFFFF)
+#define COLOR_MENU_TEXT 0x4160
 #else
 #error No display type specified
 #endif
+
+#define SET_MENU_FONT()                      \
+  display.setFixedFont(ssd1306xled_font5x7); \
+  display.setColor(COLOR_MENU_TEXT)
 
 SAppMenu menu;
 #define MENU_ITEM_COUNT (kInteractiveTriggerCount)
 char *menuItems[MENU_ITEM_COUNT] = {0};
 
 NanoRect menuRect() {
-  //{0, 16, DISPLAY_WIDTH, DISPLAY_HEIGHT};
   auto result = display.rect();
   result.p1.y = result.p2.y - 42;
   return result;
@@ -88,6 +94,8 @@ ButtonState buttonEnter = {kABIPinShiftRegister, kSinEnter};
 OneWire oneWire(ONE_WIRE_BUS);
 Temperature temperature(oneWire);
 RealTimeClock rtc;
+// RX, TX
+SoftwareSerial ser(A1, A2);
 
 void printRTCTemperature() {
   // Serial_printf("%2d.%02d°\n", rtc.temp() / 100, rtc.temp() % 100);
@@ -130,6 +138,11 @@ void setup() {
 
   Serial.println(F("START " __FILE__));
   Serial.println(F(PROGNAME " Version " VERSION " built on " __DATE__));
+
+  ser.begin(9600);
+
+  // Start the I2C Bus as Master
+  Wire.begin();
 
   rtc.setup();
   temperature.setup();
@@ -174,17 +187,8 @@ void setup() {
     strcpy(menuItems[i], sbsm_trigger_name((Trigger)i).c_str());
   }
 
-  /*
-    NanoRect rect = menuRect();
-    display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), rect);
-    display.setFreeFont(free_calibri11x12_latin);
-    display.setFontSpacing(1);
-    display.showMenuSmooth(&menu);
-  */
   display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect());
-  display.setFreeFont(free_calibri11x12);
-  display.setFontSpacing(1);
-  display.setColor(COLOR_YELLOW);
+  SET_MENU_FONT();
 #if MENU_MODE_SMOOTH
   display.showMenuSmooth(&menu);
 #else
@@ -213,10 +217,17 @@ unsigned long debug_ts = micros();
 lcdint_t x = 0;
 lcdint_t y = 0;
 
+/*
+ EEPROM
+ nano (every) has 256 bytes
+*/
+
 #define TICK_LENGTH 100
 #define DEBUG_INTERVAL 1000000
 
 bool menuUpdate = true;
+uint32_t loopCount(0);
+
 void loop() {
   auto dt = micros() - ts;
   if (dt < TICK_LENGTH) {
@@ -239,8 +250,9 @@ void loop() {
     case kRotaryActionClick: {
       Trigger event = (Trigger)menu.selection;
       sbsm_trigger(event);
-      Serial.print("Select: ");
-      Serial.println(triggerNames.find(event)->second.c_str());
+      auto triggerName = triggerNames.find(event)->second;
+      ser.write(triggerName.c_str());
+      ser.write('\n ');
       break;
     }
     case kRotaryActionWiddershinsUp:
@@ -275,9 +287,7 @@ void loop() {
 
   if (menuUpdate) {
     menuUpdate = false;
-    display.setFreeFont(free_calibri11x12);
-    display.setFontSpacing(1);
-    display.setColor(COLOR_WHITE);
+    SET_MENU_FONT();
 #if MENU_MODE_SMOOTH
     display.updateMenuSmooth(&menu);
 #else
@@ -379,7 +389,7 @@ void loop() {
 
   if (debounce(buttonYellow) && buttonYellow.value) {
     sbsm_trigger(kTriggerSelectInputAnalog);
-    sbsm_trigger(kTriggerActivateMonitor);
+    sbsm_trigger(kTriggerSelectOutputMonitor);
   }
 
 #if DEBUG_COLOR_DRAW
@@ -404,6 +414,7 @@ void loop() {
     // abo_debug();
 
     // Serial_printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
+    ser.println(time);
 
     // printRTCTime();
     // printRTCTemperature();
