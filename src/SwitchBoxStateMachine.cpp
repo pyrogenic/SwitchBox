@@ -16,13 +16,16 @@ Pin RELAY_SUB = {kABIPinShiftRegister, kSoutRelaySub};
 
 void state_input_digital_on_enter();
 void state_input_analog_on_enter();
+#if AUX_INPUT
+void state_input_aux_on_enter();
+void state_input_aux_on_exit();
+#endif
 void state_subwoofer_bypass_on_enter();
 void state_subwoofer_engage_on_enter();
 void state_output_geshelli_on_enter();
-void state_output_geshelli_on_enter();
+void state_output_geshelli_on_exit();
 void state_output_valhalla_on_enter();
 void state_output_valhalla_on_exit();
-void state_output_monitor_on_enter();
 void state_output_monitor_on_enter();
 void state_output_monitor_on_exit();
 
@@ -30,15 +33,21 @@ void state_output_monitor_on_exit();
 // define states with State state(&func_on_enter_state, &func_in_state,
 // &func_on_exit_state) you can use nullptr where no function is required
 
+// TODO: only disable SUB when in Geshelli if LEVEL_MATCHED_MONITOR
+// TODO: save/restore state in EEPROM
+
 State state_input_digital(&state_input_digital_on_enter, nullptr, nullptr);
 State state_input_analog(&state_input_analog_on_enter, nullptr, nullptr);
+#if AUX_INPUT
+State state_input_aux(&state_input_aux_on_enter, nullptr, &state_input_aux_on_exit);
+#endif
 State state_subwoofer_bypass(&state_subwoofer_bypass_on_enter, nullptr, nullptr);
 State state_subwoofer_engage(&state_subwoofer_engage_on_enter, nullptr, nullptr);
 State state_subwoofer_bypass_locked(&state_subwoofer_bypass_on_enter, nullptr, nullptr);
 State state_subwoofer_engage_locked(&state_subwoofer_bypass_on_enter, nullptr, nullptr);
-State state_output_geshelli(&state_output_geshelli_on_enter, nullptr, nullptr);
+State state_output_geshelli(&state_output_geshelli_on_enter, nullptr, &state_output_geshelli_on_exit);
 State state_output_valhalla(&state_output_valhalla_on_enter, nullptr, &state_output_valhalla_on_exit);
-State state_output_monitor(&state_output_monitor_on_enter, nullptr, nullptr);
+State state_output_monitor(&state_output_monitor_on_enter, nullptr, &state_output_monitor_on_exit);
 
 // define the fsm with the state it will start in
 Fsm fsm_input(&state_input_digital);
@@ -93,29 +102,29 @@ void sbsm_trigger(Trigger event) {
 
 // fsm state functions
 void state_input_digital_on_enter() {
-  abo_digitalWrite(RELAY_INPUT, LOW);
+  abo_digitalWrite(RELAY_INPUT, SOUT_LOW);
 }
 
 void state_input_analog_on_enter() {
-  abo_digitalWrite(RELAY_INPUT, HIGH);
+  abo_digitalWrite(RELAY_INPUT, SOUT_HIGH);
 }
 
 void state_subwoofer_bypass_on_enter() {
-  abo_digitalWrite(RELAY_SUB, LOW);
+  abo_digitalWrite(RELAY_SUB, SOUT_LOW);
 }
 
 void state_subwoofer_engage_on_enter() {
-  abo_digitalWrite(RELAY_SUB, HIGH);
+  abo_digitalWrite(RELAY_SUB, SOUT_HIGH);
 }
 
 void state_output_geshelli_on_enter() {
-  abo_digitalWrite(RELAY_AMP, LOW);
-  abo_digitalWrite(RELAY_MONITOR, LOW);
+  abo_digitalWrite(RELAY_AMP, SOUT_LOW);
+  abo_digitalWrite(RELAY_MONITOR, SOUT_LOW);
 }
 
 void state_output_valhalla_on_enter() {
-  abo_digitalWrite(RELAY_AMP, HIGH);
-  abo_digitalWrite(RELAY_MONITOR, LOW);
+  abo_digitalWrite(RELAY_AMP, SOUT_HIGH);
+  abo_digitalWrite(RELAY_MONITOR, SOUT_LOW);
   sbsm_trigger(kTriggerPreampEngaged);
 }
 
@@ -124,8 +133,13 @@ void state_output_valhalla_on_exit() {
 }
 
 void state_output_monitor_on_enter() {
-  abo_digitalWrite(RELAY_AMP, LOW);
-  abo_digitalWrite(RELAY_MONITOR, HIGH);
+  abo_digitalWrite(RELAY_AMP, SOUT_LOW);
+  abo_digitalWrite(RELAY_MONITOR, SOUT_HIGH);
+  sbsm_trigger(kTriggerMonitorEngaged);
+}
+
+void state_output_monitor_on_exit() {
+  sbsm_trigger(kTriggerMonitorBypassed);
 }
 
 void sbsm_setup() {
@@ -135,6 +149,9 @@ void sbsm_setup() {
 
   stateNames.insert({&state_input_digital, "Digital"});
   stateNames.insert({&state_input_analog, "Analog"});
+#if AUX_INPUT
+  stateNames.insert({&state_input_aux, "Analog"});
+#endif
   stateNames.insert({&state_subwoofer_bypass, "Sub Off"});
   stateNames.insert({&state_subwoofer_engage, "Sub On"});
   stateNames.insert({&state_subwoofer_bypass_locked, "(Sub Off)"});
@@ -146,7 +163,9 @@ void sbsm_setup() {
   triggerNames.insert({kTriggerToggleInput, "Next Input"});
   triggerNames.insert({kTriggerSelectInputDigital, "Digital In"});
   triggerNames.insert({kTriggerSelectInputAnalog, "Analog In"});
-
+#if AUX_INPUT
+  triggerNames.insert({kTriggerSelectInputAuxiliary, "Aux In"});
+#endif
   triggerNames.insert({kTriggerToggleSubwoofer, "Toggle Sub "});
   triggerNames.insert({kTriggerSubwooferBypass, "Subwoofer Off"});
   triggerNames.insert({kTriggerSubwooferEngage, "Subwoofer On"});
@@ -154,11 +173,12 @@ void sbsm_setup() {
   triggerNames.insert({kTriggerToggleOutput, "Next Output"});
   triggerNames.insert({kTriggerSelectOutputGeshelli, "Gesheli"});
   triggerNames.insert({kTriggerSelectOutputValhalla, "Valhalla"});
-
-  triggerNames.insert({kTriggerActivateMonitor, "Monitor"});
+  triggerNames.insert({kTriggerSelectOutputMonitor, "Monitor"});
 
   triggerNames.insert({kTriggerPreampEngaged, "Preamp Available"});
   triggerNames.insert({kTriggerPreampBypassed, "No Preamp"});
+  triggerNames.insert({kTriggerMonitorEngaged, "Monitor Available"});
+  triggerNames.insert({kTriggerMonitorBypassed, "No Monitor"});
 
   // define transitions between states with
   // myfsm.add_transition(&state_to_transition_from, &state_to_transition_to,
@@ -176,26 +196,34 @@ void sbsm_setup() {
   fsm_subwoofer.add_transition(&state_subwoofer_bypass, &state_subwoofer_engage, kTriggerToggleSubwoofer, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_bypass, &state_subwoofer_engage, kTriggerSubwooferEngage, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_bypass, &state_subwoofer_bypass_locked, kTriggerPreampBypassed, nullptr);
+  fsm_subwoofer.add_transition(&state_subwoofer_bypass, &state_subwoofer_bypass_locked, kTriggerMonitorBypassed, nullptr);
 
   fsm_subwoofer.add_transition(&state_subwoofer_engage, &state_subwoofer_bypass, kTriggerToggleSubwoofer, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_engage, &state_subwoofer_bypass, kTriggerSubwooferBypass, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_engage, &state_subwoofer_engage_locked, kTriggerPreampBypassed, nullptr);
+  fsm_subwoofer.add_transition(&state_subwoofer_engage, &state_subwoofer_engage_locked, kTriggerMonitorBypassed, nullptr);
 
   fsm_subwoofer.add_transition(&state_subwoofer_bypass_locked, &state_subwoofer_engage_locked, kTriggerToggleSubwoofer, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_bypass_locked, &state_subwoofer_engage_locked, kTriggerSubwooferEngage, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_bypass_locked, &state_subwoofer_bypass, kTriggerPreampEngaged, nullptr);
+#if LEVEL_MATCHED_MONITOR
+  fsm_subwoofer.add_transition(&state_subwoofer_bypass_locked, &state_subwoofer_bypass, kTriggerMonitorEngaged, nullptr);
+#endif
 
   fsm_subwoofer.add_transition(&state_subwoofer_engage_locked, &state_subwoofer_bypass_locked, kTriggerToggleSubwoofer, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_engage_locked, &state_subwoofer_bypass_locked, kTriggerSubwooferBypass, nullptr);
   fsm_subwoofer.add_transition(&state_subwoofer_engage_locked, &state_subwoofer_engage, kTriggerPreampEngaged, nullptr);
+#if LEVEL_MATCHED_MONITOR
+  fsm_subwoofer.add_transition(&state_subwoofer_engage_locked, &state_subwoofer_engage, kTriggerMonitorEngaged, nullptr);
+#endif
 
   fsm_output.add_transition(&state_output_geshelli, &state_output_valhalla, kTriggerToggleOutput, nullptr);
   fsm_output.add_transition(&state_output_geshelli, &state_output_valhalla, kTriggerSelectOutputValhalla, nullptr);
-  fsm_output.add_transition(&state_output_geshelli, &state_output_monitor, kTriggerActivateMonitor, nullptr);
+  fsm_output.add_transition(&state_output_geshelli, &state_output_monitor, kTriggerSelectOutputMonitor, nullptr);
 
-  fsm_output.add_transition(&state_output_valhalla, &state_output_geshelli, kTriggerToggleOutput, nullptr);
+  fsm_output.add_transition(&state_output_valhalla, &state_output_monitor, kTriggerToggleOutput, nullptr);
   fsm_output.add_transition(&state_output_valhalla, &state_output_geshelli, kTriggerSelectOutputGeshelli, nullptr);
-  fsm_output.add_transition(&state_output_valhalla, &state_output_monitor, kTriggerActivateMonitor, nullptr);
+  fsm_output.add_transition(&state_output_valhalla, &state_output_monitor, kTriggerSelectOutputMonitor, nullptr);
 
   fsm_output.add_transition(&state_output_monitor, &state_output_geshelli, kTriggerToggleOutput, nullptr);
   fsm_output.add_transition(&state_output_monitor, &state_output_geshelli, kTriggerSelectOutputGeshelli, nullptr);

@@ -1,6 +1,7 @@
 #include "ABO.h"
 #include "DebugLine.h"
 #include <Arduino.h>
+#include <EEPROM.h>
 
 namespace ABO {
 int pin_clk;
@@ -25,6 +26,7 @@ void abo_setup(ABOnit init) {
   digitalWrite(ABO::pin_load, HIGH);
 
   ABO::registers = (byte *)calloc(sizeof(byte), ABO::registerCount);
+  EEPROM.get
 }
 
 void abo_loop() {
@@ -59,6 +61,8 @@ void abo_pinMode(const Pin &pin, uint32_t dwMode) {
     break;
   }
 }
+
+// TODO: Save state in EEPROM
 
 void abo_digitalWrite(const Pin &pin, bool value) {
   switch (pin.type) {

@@ -10,11 +10,18 @@
 
 #include "Fsm.h"
 
+#define AUX_IN 0
+
+// Amp bypass has impedance control, allowing output to the subwoofer without going through a preamp.
+#define LEVEL_MATCHED_MONITOR 1
+
 enum Trigger {
   kTriggerToggleInput,
   kTriggerSelectInputDigital,
   kTriggerSelectInputAnalog,
-
+#if AUX_INPUT
+  kTriggerSelectInputAuxiliary,
+#endif
   kTriggerToggleSubwoofer,
   kTriggerSubwooferBypass,
   kTriggerSubwooferEngage,
@@ -22,13 +29,21 @@ enum Trigger {
   kTriggerToggleOutput,
   kTriggerSelectOutputGeshelli,
   kTriggerSelectOutputValhalla,
-
-  kTriggerActivateMonitor,
+  kTriggerSelectOutputMonitor,
 
   kInteractiveTriggerCount,
 
   kTriggerPreampEngaged,
   kTriggerPreampBypassed,
+  kTriggerMonitorEngaged,
+  kTriggerMonitorBypassed,
+
+  kTriggerToggleMenu,
+  kTriggerMenuNone,
+  kTriggerMenuQuick,
+  kTriggerMenuInput,
+  kTriggerMenuOutput,
+  kTriggerMenuPower,
 };
 
 extern std::map<Fsm *, const std::string> stateMachineNames;

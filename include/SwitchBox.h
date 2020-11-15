@@ -139,3 +139,13 @@ typedef enum {
   kSoutUnusedC = 6,
   kSoutUnusedD = 7,
 } ShiftOutBit;
+
+#define INVERT_RELAY_CONTROL 0
+
+#if INVERT_RELAY_CONTROL
+#define SOUT_LOW HIGH
+#define SOUT_HIGH LOW
+#else
+#define SOUT_LOW LOW
+#define SOUT_HIGH HIGH
+#endif
