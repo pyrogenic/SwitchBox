@@ -26,7 +26,9 @@ void abo_setup(ABOnit init) {
   digitalWrite(ABO::pin_load, HIGH);
 
   ABO::registers = (byte *)calloc(sizeof(byte), ABO::registerCount);
-  EEPROM.get
+  for (int registerIndex = 0; registerIndex < ABO::registerCount; ++registerIndex) {
+    EEPROM.get(registerIndex, ABO::registers[registerIndex]);
+  }
 }
 
 void abo_loop() {

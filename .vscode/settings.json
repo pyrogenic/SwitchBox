@@ -54,6 +54,7 @@
         "utility": "cpp",
         "valarray": "cpp",
         "random": "cpp",
-        "cstdint": "cpp"
+        "cstdint": "cpp",
+        "serstream": "cpp"
     }
 }

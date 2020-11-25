@@ -98,8 +98,8 @@
 // SR_OUT SER
 #define SHIFT_OUT_DATA 10
 // SR_OUT RCLK
-// trying A0 b/c D12 didn't seem to work
-#define SHIFT_OUT_LATCH 14
+// trying A0 (14) b/c D12 didn't seem to work
+#define SHIFT_OUT_LATCH A0
 
 #endif
 
@@ -130,17 +130,17 @@ typedef enum {
 } ShiftInBit;
 
 typedef enum {
-  kSoutRelayInput = 0,
-  kSoutRelayMonitor = 1,
-  kSoutRelayAmp = 2,
-  kSoutRelaySub = 3,
+  kSoutRelayInputA = 0,
+  kSoutRelayInputB = 1,
+  kSoutRelayPreamp = 2,
+  kSoutRelayAmp = 3,
   kSoutUnusedA = 4,
-  kSoutUnusedB = 5,
-  kSoutUnusedC = 6,
-  kSoutUnusedD = 7,
+  kSoutRelayMonitor = 5,
+  kSoutUnusedB = 6,
+  kSoutRelaySub = 7,
 } ShiftOutBit;
 
-#define INVERT_RELAY_CONTROL 0
+#define INVERT_RELAY_CONTROL 1
 
 #if INVERT_RELAY_CONTROL
 #define SOUT_LOW HIGH

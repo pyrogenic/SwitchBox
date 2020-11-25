@@ -17,8 +17,10 @@
 #include "DebugLine.h"
 #include "RealTimeClock.h"
 #include "RotaryEncoder.h"
+#include "SoftWireI2C.h"
 #include "SwitchBoxStateMachine.h"
 #include "Temperature.h"
+#include <SoftWire.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include <lcdgfx.h>
@@ -63,6 +65,67 @@ DisplaySSD1331_96x64x16_SPI display(SSD1331_RES, spiConfig); // 8, {-1, 10, 9});
 #error No display type specified
 #endif
 
+/**
+
+ * bus id number. this parameter is valid for Linux, ESP32.
+ * If -1 is pointed, it defaults to platform specific i2c bus (Linux i2c-dev0, esp32 I2C_NUM_0).
+int8_t busId;
+
+ * Address of i2c device to control. This is mandatory argument for all platforms
+uint8_t addr;
+
+ * Pin to use as i2c clock pin. This parameter is not used in Linux.
+ * If -1 is pointed, the library uses default clock pin for specific platform.
+int8_t scl;
+
+ * Pin to use as i2c data pin. This parameter is not used in Linux.
+ * If -1 is pointed, the library uses default data pin for specific platform.
+int8_t sda;
+
+ * Frequency in HZ to run spi bus at. Zero value defaults to platform optimal clock
+ * speed (100kHz or 400kHz depending on platform).
+uint32_t frequency;
+
+ */
+// #define SCL_1 SCL
+// #define SCL_2 A1
+// #define SCL_3 A1
+
+// #define SDA_1 SDA
+// #define SDA_2 A3
+// #define SDA_3 A2
+
+#define RTC_ADDR 0x68
+#define DISPLAY_2_ADDR 0x3C
+#define DISPLAY_3_ADDR 0x3C
+#define DISPLAY_4_ADDR 0x3C
+SPlatformI2cConfig i2cConfig2 = {-1, DISPLAY_2_ADDR, SCL, SDA, 0};
+DisplaySSD1306_128x64_I2C display2(-1, i2cConfig2);
+// DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display3(-1, A1, A3, DISPLAY_3_ADDR, 1200);
+// DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display4(-1, SCL_3, SDA_3, DISPLAY_4_ADDR);
+
+#include <Multi_BitBang.h>
+#include <Multi_OLED.h>
+
+#define NUM_DISPLAYS 3
+#define NUM_BUSES 2
+// I2C bus info
+uint8_t scl_list[NUM_BUSES] = {A1, A1}; //{9,9,9,9};
+uint8_t sda_list[NUM_BUSES] = {A2, A3}; //{5,6,7,8};
+int32_t speed_list[NUM_BUSES] = {400000L, 400000L};
+// OLED display info
+uint8_t bus_list[NUM_DISPLAYS] = {0, 0, 1}; // can be multiple displays per bus
+uint8_t addr_list[NUM_DISPLAYS] = {0x3d, 0x3c, 0x3c};
+uint8_t type_list[NUM_DISPLAYS] = {OLED_128x64, OLED_128x64, OLED_128x64};
+uint8_t flip_list[NUM_DISPLAYS] = {0, 0, 0};
+uint8_t invert_list[NUM_DISPLAYS] = {0, 0, 0};
+
+void hydra_setup() {
+  // put your setup code here, to run once:
+  Multi_I2CInit(sda_list, scl_list, speed_list, NUM_BUSES);
+  Multi_OLEDInit(bus_list, addr_list, type_list, flip_list, invert_list, NUM_DISPLAYS);
+} // setup
+
 #define SET_MENU_FONT()                      \
   display.setFixedFont(ssd1306xled_font5x7); \
   display.setColor(COLOR_MENU_TEXT)
@@ -95,7 +158,7 @@ OneWire oneWire(ONE_WIRE_BUS);
 Temperature temperature(oneWire);
 RealTimeClock rtc;
 // RX, TX
-SoftwareSerial ser(A1, A2);
+SoftwareSerial ser(A6, A7);
 
 void printRTCTemperature() {
   // Serial_printf("%2d.%02d°\n", rtc.temp() / 100, rtc.temp() % 100);
@@ -194,17 +257,73 @@ void setup() {
 #else
   display.showMenu(&menu);
 #endif
+  // }
+
+  // void extended_display_start() {
+  display2.begin();
+  display2.clear();
+  display2.setFreeFont(free_calibri11x12);
+  display2.setTextCursor(10, 0);
+  display2.write("Display 2");
+
+  // display3.begin();
+  // display3.clear();
+  // display3.setFreeFont(free_calibri11x12);
+  // display3.setTextCursor(10, 0);
+  // display3.write("Display 3");
+  // display3.end();
+
+  // display4.begin();
+  // display4.clear();
+  // display4.setFreeFont(free_calibri11x12);
+  // display4.setTextCursor(10, 0);
+  // display4.write("Display 4");
+
+  hydra_setup();
 }
 
 int encoderPosCount = 0;
 // bool menuDirty = true;
 
 #define LABEL_STRING_BUFFER_SIZE (42)
+char hydraLabel[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel0[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel1[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel2[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel3[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastTime[TIME_STRING_BUFFER_SIZE] = {0};
+
+void hydra_loop() {
+  uint8_t i, j, bit, map[16];
+  uint8_t addr;
+  char szTemp[16];
+  for (i = 0; i < NUM_BUSES; i++) {
+    Serial.print("Scanning I2C bus ");
+    Serial.println(i);
+    Multi_I2CScan(i, map);
+    for (j = 0; j < 16; j++) {
+      if (map[j] != 0) // device(s) found
+      {
+        for (bit = 0; bit < 8; bit++) {
+          if (map[j] & (1 << bit)) // device here
+          {
+            addr = (j * 8) + bit;
+            Serial.print("Device found at address 0x");
+            Serial.println(addr, HEX);
+          }
+        }
+      }
+    }
+  } // for each bus
+
+  for (int i = 0; i < NUM_DISPLAYS; i++) {
+    Multi_OLEDFill(i, 0);
+    Multi_OLEDSetContrast(i, 255);
+    Multi_OLEDWriteString(i, 0, 0, (char *)"Display", FONT_SMALL, 0);
+    sprintf(hydraLabel, "Num: %d", i + 3);
+    Multi_OLEDWriteString(i, 0, 2, hydraLabel, FONT_NORMAL, 0);
+  }
+}
 
 // the loop routine runs over and over again forever:
 float avgTick = 0;
@@ -217,6 +336,31 @@ unsigned long debug_ts = micros();
 lcdint_t x = 0;
 lcdint_t y = 0;
 
+// void i2cScan() {
+//   byte error, address;
+//   int bus;
+
+//   for (bus = 3; bus <= 4; bus++) {
+//     SoftWire wire(A0 + bus, SCL);
+//     // wire.setClock(1200);
+//     wire.begin();
+//     Serial_printf("Scanning bus %d...\n", bus);
+//     for (address = 1; address < 127; address++) {
+//       // The i2c_scanner uses the return value of
+//       // the Write.endTransmisstion to see if
+//       // a device did acknowledge to the address.
+//       wire.beginTransmission(address);
+//       error = wire.endTransmission();
+
+//       if (error == 0) {
+//         Serial_printf("I2C address %d.%02x : device found!\n", bus, address);
+//       } else if (error == 4) {
+//         Serial_printf("I2C address %d.%02x : timeout\n", bus, address);
+//       }
+//     }
+//     wire.end();
+//   }
+// }
 /*
  EEPROM
  nano (every) has 256 bytes
@@ -416,6 +560,8 @@ void loop() {
     // Serial_printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
     ser.println(time);
 
+    // i2cScan();
+    hydra_loop();
     // printRTCTime();
     // printRTCTemperature();
 

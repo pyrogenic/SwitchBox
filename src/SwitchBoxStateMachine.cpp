@@ -6,7 +6,7 @@
 #include <Arduino.h>
 
 // RELAY_INPUT switches from the DAC to the PHONO input
-Pin RELAY_INPUT = {kABIPinShiftRegister, kSoutRelayInput};
+Pin RELAY_INPUT = {kABIPinShiftRegister, kSoutRelayInputA};
 // RELAY_MONITOR engages the preamp bypass (direct to speakers)
 Pin RELAY_MONITOR = {kABIPinShiftRegister, kSoutRelayMonitor};
 // RELAY_AMP switches from GESHELLI to VALHALLA output
@@ -120,6 +120,9 @@ void state_subwoofer_engage_on_enter() {
 void state_output_geshelli_on_enter() {
   abo_digitalWrite(RELAY_AMP, SOUT_LOW);
   abo_digitalWrite(RELAY_MONITOR, SOUT_LOW);
+}
+
+void state_output_geshelli_on_exit() {
 }
 
 void state_output_valhalla_on_enter() {
