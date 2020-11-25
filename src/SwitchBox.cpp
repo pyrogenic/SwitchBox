@@ -97,10 +97,12 @@ uint32_t frequency;
 
 #define RTC_ADDR 0x68
 #define DISPLAY_2_ADDR 0x3C
-#define DISPLAY_3_ADDR 0x3C
+#define DISPLAY_3_ADDR 0x3D
 #define DISPLAY_4_ADDR 0x3C
 SPlatformI2cConfig i2cConfig2 = {-1, DISPLAY_2_ADDR, SCL, SDA, 0};
 DisplaySSD1306_128x64_I2C display2(-1, i2cConfig2);
+SPlatformI2cConfig i2cConfig3 = {-1, DISPLAY_3_ADDR, SCL, SDA, 0};
+DisplaySSD1306_128x64_I2C display3(-1, i2cConfig3);
 // DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display3(-1, A1, A3, DISPLAY_3_ADDR, 1200);
 // DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display4(-1, SCL_3, SDA_3, DISPLAY_4_ADDR);
 
@@ -114,11 +116,11 @@ uint8_t scl_list[NUM_BUSES] = {A1, A1}; //{9,9,9,9};
 uint8_t sda_list[NUM_BUSES] = {A2, A3}; //{5,6,7,8};
 int32_t speed_list[NUM_BUSES] = {400000L, 400000L};
 // OLED display info
-uint8_t bus_list[NUM_DISPLAYS] = {0, 0, 1}; // can be multiple displays per bus
-uint8_t addr_list[NUM_DISPLAYS] = {0x3d, 0x3c, 0x3c};
-uint8_t type_list[NUM_DISPLAYS] = {OLED_128x64, OLED_128x64, OLED_128x64};
-uint8_t flip_list[NUM_DISPLAYS] = {0, 0, 0};
-uint8_t invert_list[NUM_DISPLAYS] = {0, 0, 0};
+uint8_t bus_list[NUM_DISPLAYS] = {0, 1}; // can be multiple displays per bus
+uint8_t addr_list[NUM_DISPLAYS] = {0x3c, 0x3c};
+uint8_t type_list[NUM_DISPLAYS] = {OLED_128x64, OLED_128x64};
+uint8_t flip_list[NUM_DISPLAYS] = {0, 0};
+uint8_t invert_list[NUM_DISPLAYS] = {0, 0};
 
 void hydra_setup() {
   // put your setup code here, to run once:
@@ -266,12 +268,11 @@ void setup() {
   display2.setTextCursor(10, 0);
   display2.write("Display 2");
 
-  // display3.begin();
-  // display3.clear();
-  // display3.setFreeFont(free_calibri11x12);
-  // display3.setTextCursor(10, 0);
-  // display3.write("Display 3");
-  // display3.end();
+  display3.begin();
+  display3.clear();
+  display3.setFreeFont(free_calibri11x12);
+  display3.setTextCursor(10, 0);
+  display3.write("Display 3");
 
   // display4.begin();
   // display4.clear();
