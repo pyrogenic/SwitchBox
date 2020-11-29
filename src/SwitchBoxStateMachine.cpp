@@ -12,9 +12,11 @@
 typedef class Fsm<Trigger> Sbsm;
 std::vector<Sbsm *> stateMachines;
 
-#define SBSM(FSM_NAME, STATE_NAME)                                                           \
-  Sbsm fsm_##FSM_NAME(#FSM_NAME, state_##FSM_NAME##_##STATE_NAME);                           \
-  PROGMEM const char *FSM_NAME##_label() { return fsm_##FSM_NAME.get_current_state().name; } \
+#define FSM(FSM_NAME) fsm_##FSM_NAME
+
+#define SBSM(FSM_NAME, STATE_NAME)                                                                 \
+  Sbsm FSM(FSM_NAME)(#FSM_NAME, state_##FSM_NAME##_##STATE_NAME);                                  \
+  PROGMEM const char *sbsm_##FSM_NAME##_label() { return FSM(FSM_NAME).get_current_state().name; } \
   void FSM_NAME##_setup()
 
 #define STATE_ID(FSM_NAME, STATE_NAME) state_##FSM_NAME##_##STATE_NAME
@@ -28,7 +30,7 @@ std::vector<Sbsm *> stateMachines;
 
 #define STATE(FSM_NAME, STATE_NAME) STATE3(FSM_NAME, STATE_NAME, ;, ;, ;)
 
-#define TRANSITION(FSM_NAME, EVENT, A, B) fsm_##FSM_NAME.add_transition(state_##FSM_NAME##_##A, state_##FSM_NAME##_##B, EVENT, nullptr)
+#define TRANSITION(FSM_NAME, EVENT, A, B) FSM(FSM_NAME).add_transition(state_##FSM_NAME##_##A, state_##FSM_NAME##_##B, EVENT, nullptr)
 
 #define TOGGLE(FSM_NAME, EVENT, A, B) \
   TRANSITION(FSM_NAME, EVENT, A, B);  \
@@ -63,22 +65,75 @@ SBSM(input, digital) {
 STATE(mode, day);
 STATE(mode, night);
 STATE(mode, off);
-Sbsm fsm_mode("mode", state_mode_day);
+SBSM(mode, day);
 
 // State       OutputA  OutputB  Headphones  Trigger
 // Geshelli    low      (low)    low         -
-// Valhalla    high     low      high        <engage valhalla>    // will bypass attenuator
-// Speakers    high     high     (low)
-// ADC         high     low      (low)
-STATE(output, geshelli);
-STATE(output, valhalla);
-STATE(output, speakers);
-STATE(output, adc);
-Sbsm fsm_output("output", state_output_geshelli);
+// Valhalla    high     high     high        <engage valhalla>    // will bypass attenuator
+// Speakers    high     low      (low)
+// ADC         high     high     (low)
+STATE1(output, geshelli, {
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_LOW);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_LOW);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_headphones}, SOUT_LOW);
+});
+STATE2(
+    output, valhalla,
+    {
+      abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_HIGH);
+      abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_HIGH);
+      abo_digitalWrite({kABIPinShiftRegister, kSout_headphones}, SOUT_HIGH);
+      sbsm_trigger(kTrigger_valhalla_force);
+    },
+    { sbsm_trigger(kTrigger_valhalla_release); });
+STATE1(output, speakers, {
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_HIGH);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_LOW);
+});
+STATE1(output, adc, {
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_HIGH);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_HIGH);
+});
+
+#define OUTPUT_STATE_COUNT (kTrigger_output_end - kTrigger_output_begin)
+struct StateW {
+  State &state;
+};
+StateW outputStates[OUTPUT_STATE_COUNT] = {{state_output_geshelli}, {state_output_valhalla}, {state_output_speakers}, {state_output_adc}};
+
+SBSM(output, geshelli) {
+  // next / prev
+  for (int i = 0; i < OUTPUT_STATE_COUNT; ++i) {
+    State &a = outputStates[i].state;
+    State &b = outputStates[(i + 1) % OUTPUT_STATE_COUNT].state;
+    FSM(output).add_transition(a, b, TRIGGER(output, next), nullptr);
+    FSM(output).add_transition(b, a, TRIGGER(output, prev), nullptr);
+  }
+  for (Trigger i = kTrigger_output_begin; i < kTrigger_output_end; ++i) {
+    State &a = outputStates[i - kTrigger_output_begin].state;
+    for (int s = 0; s < OUTPUT_STATE_COUNT; ++s) {
+      State &b = outputStates[(i + 1) % OUTPUT_STATE_COUNT].state;
+      if (&a != &b) {
+        FSM(output).add_transition(b, a, i, nullptr);
+      }
+    }
+  }
+};
 
 TOGGLE_FSM_PIN(loki);
 TOGGLE_FSM_PIN(bellari);
-TOGGLE_FSM(valhalla, {/* engage */}, {/* bypass */});
+STATE1(valhalla, bypass, { abo_digitalWrite({kABIPinShiftRegister, kSout_engage_valhalla}, SOUT_LOW); });
+STATE1(valhalla, engage, { abo_digitalWrite({kABIPinShiftRegister, kSout_engage_valhalla}, SOUT_HIGH); });
+STATE1(valhalla, bypass_force_engage, { state_valhalla_engage_on_enter(); });
+STATE1(valhalla, engage_force_engage, { state_valhalla_engage_on_enter(); });
+SBSM(valhalla, bypass) {
+  TOGGLE(valhalla, kTrigger_valhalla_toggle, bypass, engage);
+  TOGGLE(valhalla, kTrigger_valhalla_toggle, bypass_force_engage, engage_force_engage);
+  TRANSITION(valhalla, kTrigger_valhalla_force, bypass, bypass_force_engage);
+  TRANSITION(valhalla, kTrigger_valhalla_force, engage, engage_force_engage);
+  TRANSITION(valhalla, kTrigger_valhalla_release, bypass_force_engage, bypass);
+  TRANSITION(valhalla, kTrigger_valhalla_release, engage_force_engage, engage);
+};
 TOGGLE_FSM(subwoofer, {/* engage */}, {/* bypass */});
 TOGGLE_FSM_PIN(level);
 TOGGLE_FSM_PIN(mute);

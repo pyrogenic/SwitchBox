@@ -11,42 +11,44 @@
 #include "Fsm.h"
 
 #define TRIGGER(FSM_NAME, ITEM_NAME) kTrigger_##FSM_NAME##_##ITEM_NAME
-#define BEGIN_FSM(FSM_NAME) TRIGGER(FSM_NAME, begin)
-#define END_FSM(FSM_NAME) TRIGGER(FSM_NAME, end)
 
-#define CYCLE_FSM(FSM_NAME) BEGIN_FSM(FSM_NAME), TRIGGER(FSM_NAME, prev), TRIGGER(FSM_NAME, next)
+#define CYCLE_FSM(FSM_NAME, BEGIN_AT) TRIGGER(FSM_NAME, end), TRIGGER(FSM_NAME, prev), TRIGGER(FSM_NAME, next), TRIGGER(FSM_NAME, begin) = TRIGGER(FSM_NAME, BEGIN_AT)
 
-#define TOGGLE_FSM(FSM_NAME) TRIGGER(FSM_NAME, toggle), TRIGGER(FSM_NAME, bypass), TRIGGER(FSM_NAME, engage), END_FSM(FSM_NAME)
+#define TOGGLE_FSM(FSM_NAME) TRIGGER(FSM_NAME, toggle), TRIGGER(FSM_NAME, bypass), TRIGGER(FSM_NAME, engage)
 
 enum Trigger {
-  CYCLE_FSM(input),
   TRIGGER(input, digital),
   TRIGGER(input, analog),
   TRIGGER(input, aux),
-  END_FSM(input),
+  CYCLE_FSM(input, digital),
 
-  CYCLE_FSM(output),
-  TRIGGER(output, digital),
-  TRIGGER(output, analog),
-  TRIGGER(output, aux),
-  END_FSM(output),
+  TRIGGER(output, geshelli),
+  TRIGGER(output, valhalla),
+  TRIGGER(output, speakers),
+  TRIGGER(output, adc),
+  CYCLE_FSM(output, geshelli),
 
   TOGGLE_FSM(loki),
   TOGGLE_FSM(bellari),
   TOGGLE_FSM(valhalla),
+  TRIGGER(valhalla, force),
+  TRIGGER(valhalla, release),
   TOGGLE_FSM(subwoofer),
   TOGGLE_FSM(level),
   TOGGLE_FSM(mute),
 
-  CYCLE_FSM(menu),
   TRIGGER(menu, none),
   TRIGGER(menu, quick),
   TRIGGER(menu, input),
   TRIGGER(menu, preamp),
   TRIGGER(menu, output),
   TRIGGER(menu, mode),
-  END_FSM(menu),
+  CYCLE_FSM(menu, none),
 };
+
+Trigger operator++(Trigger t) {
+  return (Trigger)(t + 1);
+}
 
 #undef TOGGLE_FSM
 

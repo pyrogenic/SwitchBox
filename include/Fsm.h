@@ -20,7 +20,7 @@
 #define FSM_CALLBACK(name) void (*name)()
 
 typedef struct State {
-  State(PROGMEM const char *name, FSM_CALLBACK(on_enter), FSM_CALLBACK(on_state), FSM_CALLBACK(on_exit));
+  State(PROGMEM const char *name, void (*on_enter)(), void (*on_state)(), void (*on_exit)()) : name(name), on_enter(on_enter), on_state(on_state), on_exit(on_exit) {}
   PROGMEM const char *name;
   FSM_CALLBACK(on_enter);
   FSM_CALLBACK(on_state);

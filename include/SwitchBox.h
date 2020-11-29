@@ -149,23 +149,23 @@ typedef enum {
 typedef enum {
   kSout0x00 = 0x00,
 
-  kSoutInputA = 0x01,
-  kSoutInputB = 0x02,
+  kSout_input_a = 0x01,
+  kSout_input_b = 0x02,
 
   kSout0x03 = 0x03,
 
   kSout_engage_loki = 0x04,
   kSout_engage_bellari = 0x05,
-  kSout_engage_vahalla = 0x06,
+  kSout_engage_valhalla = 0x06,
   kSout_engage_level = 0x07,
 
   kSout0x08 = 0x08,
   kSout0x09 = 0x09,
 
-  kSoutOutputA = 0x0A,
-  kSoutOutputB = 0x0B,
+  kSout_output_a = 0x0A,
+  kSout_output_b = 0x0B,
   kSout_disable_subwoofer = 0x0C,
-  kSoutHeadphones = 0x0D,
+  kSout_headphones = 0x0D,
   kSout_engage_mute = 0x0E,
 
   kSout0x0F = 0x0F,
