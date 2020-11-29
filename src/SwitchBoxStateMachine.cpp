@@ -14,9 +14,9 @@ std::vector<Sbsm *> stateMachines;
 
 #define FSM(FSM_NAME) fsm_##FSM_NAME
 
-#define SBSM(FSM_NAME, STATE_NAME)                                                                 \
-  Sbsm FSM(FSM_NAME)(#FSM_NAME, state_##FSM_NAME##_##STATE_NAME);                                  \
-  PROGMEM const char *sbsm_##FSM_NAME##_label() { return FSM(FSM_NAME).get_current_state().name; } \
+#define SBSM(FSM_NAME, STATE_NAME)                                                         \
+  Sbsm FSM(FSM_NAME)(#FSM_NAME, state_##FSM_NAME##_##STATE_NAME);                          \
+  const char *sbsm_##FSM_NAME##_label() { return FSM(FSM_NAME).get_current_state().name; } \
   void FSM_NAME##_setup()
 
 #define STATE_ID(FSM_NAME, STATE_NAME) state_##FSM_NAME##_##STATE_NAME
@@ -54,6 +54,33 @@ std::vector<Sbsm *> stateMachines;
       {                                                                               \
         abo_digitalWrite({kABIPinShiftRegister, kSout_engage_##FSM_NAME}, SOUT_LOW);  \
       })
+
+#define CYCLE_FSM_STATES(FSM_NAME)                                                                   \
+  constexpr size_t FSM_NAME##_STATE_COUNT = kTrigger_##FSM_NAME##_end - kTrigger_##FSM_NAME##_begin; \
+  StateW FSM_NAME##_states[FSM_NAME##_STATE_COUNT] =
+
+#define CYCLE_FSM(FSM_NAME)                                                                \
+  Sbsm FSM(FSM_NAME)(#FSM_NAME, FSM_NAME##_states[0].state);                               \
+  const char *sbsm_##FSM_NAME##_label() { return FSM(FSM_NAME).get_current_state().name; } \
+  void FSM_NAME##_setup() {                                                                \
+    /* next / prev */                                                                      \
+    for (int i = 0; i < FSM_NAME##_STATE_COUNT; ++i) {                                     \
+      State &a = FSM_NAME##_states[i].state;                                               \
+      State &b = FSM_NAME##_states[(i + 1) % FSM_NAME##_STATE_COUNT].state;                \
+      FSM(FSM_NAME).add_transition(a, b, TRIGGER(FSM_NAME, next), nullptr);                \
+      FSM(FSM_NAME).add_transition(b, a, TRIGGER(FSM_NAME, prev), nullptr);                \
+    }                                                                                      \
+    /* for each destination, add a transition from each other state directly to it */      \
+    for (Trigger i = kTrigger_##FSM_NAME##_begin; i < kTrigger_##FSM_NAME##_end; ++i) {    \
+      State &a = FSM_NAME##_states[i - kTrigger_##FSM_NAME##_begin].state;                 \
+      for (int s = 0; s < FSM_NAME##_STATE_COUNT; ++s) {                                   \
+        State &b = FSM_NAME##_states[(i + 1) % FSM_NAME##_STATE_COUNT].state;              \
+        if (&a != &b) {                                                                    \
+          FSM(FSM_NAME).add_transition(b, a, i, nullptr);                                  \
+        }                                                                                  \
+      }                                                                                    \
+    }                                                                                      \
+  }
 
 STATE(input, digital);
 STATE(input, analog);
@@ -95,30 +122,12 @@ STATE1(output, adc, {
   abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_HIGH);
 });
 
-#define OUTPUT_STATE_COUNT (kTrigger_output_end - kTrigger_output_begin)
 struct StateW {
   State &state;
 };
-StateW outputStates[OUTPUT_STATE_COUNT] = {{state_output_geshelli}, {state_output_valhalla}, {state_output_speakers}, {state_output_adc}};
 
-SBSM(output, geshelli) {
-  // next / prev
-  for (int i = 0; i < OUTPUT_STATE_COUNT; ++i) {
-    State &a = outputStates[i].state;
-    State &b = outputStates[(i + 1) % OUTPUT_STATE_COUNT].state;
-    FSM(output).add_transition(a, b, TRIGGER(output, next), nullptr);
-    FSM(output).add_transition(b, a, TRIGGER(output, prev), nullptr);
-  }
-  for (Trigger i = kTrigger_output_begin; i < kTrigger_output_end; ++i) {
-    State &a = outputStates[i - kTrigger_output_begin].state;
-    for (int s = 0; s < OUTPUT_STATE_COUNT; ++s) {
-      State &b = outputStates[(i + 1) % OUTPUT_STATE_COUNT].state;
-      if (&a != &b) {
-        FSM(output).add_transition(b, a, i, nullptr);
-      }
-    }
-  }
-};
+CYCLE_FSM_STATES(output){{state_output_geshelli}, {state_output_valhalla}, {state_output_speakers}, {state_output_adc}};
+CYCLE_FSM(output);
 
 TOGGLE_FSM_PIN(loki);
 TOGGLE_FSM_PIN(bellari);
