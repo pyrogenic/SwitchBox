@@ -20,9 +20,11 @@
 #include "SoftWireI2C.h"
 #include "SwitchBoxStateMachine.h"
 #include "Temperature.h"
+#include <Multi_OLED.h>
 #include <SoftWire.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
+#include <canvas/canvas_types.h>
 #include <lcdgfx.h>
 
 #ifndef PSTR
@@ -133,19 +135,14 @@ void hydra_setup() {
   display.setColor(COLOR_MENU_TEXT)
 
 SAppMenu menu;
-#define MENU_ITEM_COUNT (kInteractiveTriggerCount)
-char *menuItems[MENU_ITEM_COUNT] = {0};
+#define MENU_ITEM_COUNT (0)
+char *menuItems[MENU_ITEM_COUNT] = {};
 
 NanoRect menuRect() {
   auto result = display.rect();
   result.p1.y = result.p2.y - 42;
   return result;
 }
-
-ButtonState buttonYellow = {kABIPinShiftRegister, kSinKeyH};
-ButtonState buttonBlue = {kABIPinShiftRegister, kSinKeyG};
-ButtonState buttonGreen = {kABIPinShiftRegister, kSinKeyF};
-ButtonState buttonRed = {kABIPinShiftRegister, kSinKeyE};
 
 #if USE_ROTARY_INPUT
 RotaryState rotaryState;
@@ -240,17 +237,17 @@ void setup() {
   debounce(buttonEnter);
 #endif
 
-  debounce(buttonRed);
-  debounce(buttonGreen);
-  debounce(buttonBlue);
-  debounce(buttonYellow);
+  // debounce(buttonRed);
+  // debounce(buttonGreen);
+  // debounce(buttonBlue);
+  // debounce(buttonYellow);
 
   sbsm_setup();
 
-  for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
-    menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
-    strcpy(menuItems[i], sbsm_trigger_name((Trigger)i).c_str());
-  }
+  // for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
+  //   menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
+  //   strcpy(menuItems[i], sbsm_trigger_name((Trigger)i));
+  // }
 
   display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect());
   SET_MENU_FONT();
@@ -260,6 +257,8 @@ void setup() {
   display.showMenu(&menu);
 #endif
   // }
+
+  // Multi_OLEDWriteCommand2(0x81, ucContrast);
 
   // void extended_display_start() {
   display2.begin();
@@ -396,7 +395,7 @@ void loop() {
       Trigger event = (Trigger)menu.selection;
       sbsm_trigger(event);
       auto triggerName = triggerNames.find(event)->second;
-      ser.write(triggerName.c_str());
+      ser.write(triggerName);
       ser.write('\n ');
       break;
     }
@@ -426,7 +425,7 @@ void loop() {
     Trigger event = (Trigger)menu.selection;
     sbsm_trigger(event);
     Serial.print("Select: ");
-    Serial.println(triggerNames.find(event)->second.c_str());
+    Serial.println(triggerNames.find(event)->second);
   }
 #endif
 
@@ -451,9 +450,9 @@ void loop() {
   char label3[LABEL_STRING_BUFFER_SIZE] = {0};
   char time[TIME_STRING_BUFFER_SIZE] = {0};
 
-  snprintf(label0, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_input_label().c_str());
-  snprintf(label1, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_output_label().c_str());
-  snprintf(label2, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_subwoofer_label().c_str());
+  snprintf(label0, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_input_label());
+  snprintf(label1, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_output_label());
+  snprintf(label2, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_subwoofer_label());
   headerTimeFormat.amPm = kTF_12H;
   headerTimeFormat.pad = false;
   headerTimeFormat.seconds = false;
@@ -529,13 +528,13 @@ void loop() {
 
   abo_loop();
 
-  if (debounce(buttonRed) && buttonRed.value) {
-  }
+  // if (debounce(buttonRed) && buttonRed.value) {
+  // }
 
-  if (debounce(buttonYellow) && buttonYellow.value) {
-    sbsm_trigger(kTriggerSelectInputAnalog);
-    sbsm_trigger(kTriggerSelectOutputMonitor);
-  }
+  // if (debounce(buttonYellow) && buttonYellow.value) {
+  //   sbsm_trigger(kTriggerSelectInputAnalog);
+  //   sbsm_trigger(kTriggerSelectOutputMonitor);
+  // }
 
 #if DEBUG_COLOR_DRAW
   if (debounce(button4) && !button4.value) {

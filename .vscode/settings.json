@@ -1,5 +1,4 @@
 {
-    "editor.formatOnSave": true,
     "files.associations": {
         "*.tcc": "cpp",
         "deque": "cpp",
@@ -56,5 +55,7 @@
         "random": "cpp",
         "cstdint": "cpp",
         "serstream": "cpp"
-    }
+    },
+    "editor.formatOnSave": true,
+    "C_Cpp.vcFormat.wrap.preserveBlocks": "never"
 }

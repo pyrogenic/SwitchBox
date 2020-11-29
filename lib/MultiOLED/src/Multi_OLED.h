@@ -1,14 +1,11 @@
+#pragma once
+
 #define FONT_NORMAL 0
 #define FONT_LARGE 1
 #define FONT_SMALL 2
 
 // OLED type for init function
-enum {
-  OLED_128x32 = 1,
-  OLED_128x64,
-  OLED_132x64,
-  OLED_64x32
-};
+enum { OLED_128x32 = 1, OLED_128x64, OLED_132x64, OLED_64x32 };
 
 //
 // Initializes the OLED controller(s) into "page mode"

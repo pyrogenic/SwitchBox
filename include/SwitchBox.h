@@ -106,38 +106,69 @@
 typedef enum {
   // // Connected to CLK on KY-040
   // // Connected to A (11) on 74165
-  kSinRotaryA = 0,
+  kSinRotaryA = 0x00,
   kSinUp = kSinRotaryA,
   // // Connected to DT on KY-040
   // // Connected to B (12) on 74165
-  kSinRotaryB = 1,
+  kSinRotaryB = 0x01,
   kSinDown = kSinRotaryB,
   // // Connected to SW on KY-040
   // // Connected to C (13) on 74165
-  kSinRotaryButton = 2,
+  kSinRotaryButton = 0x02,
   kSinEnter = kSinRotaryButton,
 
-  // // Connected to D (14) on 74165
-  kSinKeyD = 3,
-  // // Connected to E (3) on 74165
-  kSinKeyE = 4,
-  // // Connected to F (4) on 74165
-  kSinKeyF = 5,
-  // // Connected to G (5) on 74165
-  kSinKeyG = 6,
-  // // Connected to H (6) on 74165
-  kSinKeyH = 7,
+  kSinBack = 0x03,
+  kSinDay = 0x04,
+  kSinNight = 0x05,
+  kSinOff = 0x06,
+  kSinMute = 0x07,
+
+  kSinInDigital = 0x08,
+  kSinInAnalog = 0x09,
+  kSinInAux = 0x0A,
+
+  kSin0x0B = 0x0B,
+  kSin0x0C = 0x0C,
+
+  kSinPreEQ = 0x0D,
+  kSinPreBellari = 0x0E,
+  kSinPreValhalla = 0x0F,
+
+  kSin0x10 = 0x10,
+  kSin0x11 = 0x11,
+
+  kSinOutGeshelli = 0x12,
+  kSinOutValhalla = 0x13,
+  kSinOutSpeakers = 0x14,
+  kSinOutSubwoofer = 0x15,
+  kSinOutADC = 0x16,
+
+  kSin0x17 = 0x17,
 } ShiftInBit;
 
 typedef enum {
-  kSoutRelayInputA = 0,
-  kSoutRelayInputB = 1,
-  kSoutRelayPreamp = 2,
-  kSoutRelayAmp = 3,
-  kSoutUnusedA = 4,
-  kSoutRelayMonitor = 5,
-  kSoutUnusedB = 6,
-  kSoutRelaySub = 7,
+  kSout0x00 = 0x00,
+
+  kSoutInputA = 0x01,
+  kSoutInputB = 0x02,
+
+  kSout0x03 = 0x03,
+
+  kSout_engage_loki = 0x04,
+  kSout_engage_bellari = 0x05,
+  kSout_engage_vahalla = 0x06,
+  kSout_engage_level = 0x07,
+
+  kSout0x08 = 0x08,
+  kSout0x09 = 0x09,
+
+  kSoutOutputA = 0x0A,
+  kSoutOutputB = 0x0B,
+  kSout_disable_subwoofer = 0x0C,
+  kSoutHeadphones = 0x0D,
+  kSout_engage_mute = 0x0E,
+
+  kSout0x0F = 0x0F,
 } ShiftOutBit;
 
 #define INVERT_RELAY_CONTROL 1

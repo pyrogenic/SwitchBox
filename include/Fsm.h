@@ -13,63 +13,61 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with arduino-fsm.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef FSM_H
-#define FSM_H
+#pragma once
 
-#if defined(ARDUINO) && ARDUINO >= 100
 #include <Arduino.h>
-#else
-#include <WProgram.h>
-#endif
 
-struct State {
-  State(void (*on_enter)(), void (*on_state)(), void (*on_exit)());
-  void (*on_enter)();
-  void (*on_state)();
-  void (*on_exit)();
+#define FSM_CALLBACK(name) void (*name)()
+
+typedef struct State {
+  State(PROGMEM const char *name, FSM_CALLBACK(on_enter), FSM_CALLBACK(on_state), FSM_CALLBACK(on_exit));
+  PROGMEM const char *name;
+  FSM_CALLBACK(on_enter);
+  FSM_CALLBACK(on_state);
+  FSM_CALLBACK(on_exit);
 };
 
-class Fsm {
+template <typename Event> class Fsm {
 public:
-  Fsm(State *initial_state);
+  Fsm(PROGMEM const char *name, State &initial_state);
   ~Fsm();
 
-  void add_transition(State *state_from, State *state_to, int event, void (*on_transition)());
+  void add_transition(State &state_from, State &state_to, Event event, FSM_CALLBACK(on_transition));
 
-  void add_timed_transition(State *state_from, State *state_to, unsigned long interval, void (*on_transition)());
+  void add_timed_transition(State &state_from, State &state_to, unsigned long interval, FSM_CALLBACK(on_transition));
 
   void check_timed_transitions();
 
-  void trigger(int event);
+  void trigger(Event event);
+  bool in(const State &state);
   void run_machine();
 
   const State &get_current_state() const;
 
 private:
   struct Transition {
-    State *state_from;
-    State *state_to;
-    int event;
-    void (*on_transition)();
-  };
-  struct TimedTransition {
-    Transition transition;
-    unsigned long start;
-    unsigned long interval;
+    State &state_from;
+    State &state_to;
+    Event event;
+    FSM_CALLBACK(on_transition);
   };
 
-  static Transition create_transition(State *state_from, State *state_to, int event, void (*on_transition)());
+  struct TimedTransition {
+    Transition transition;
+    unsigned long interval;
+    long at;
+  };
 
   void make_transition(Transition *transition);
 
 private:
-  State *m_current_state;
+  PROGMEM const char *m_name;
+  bool m_initialized;
+
+  State &m_current_state;
   Transition *m_transitions;
   int m_num_transitions;
 
   TimedTransition *m_timed_transitions;
   int m_num_timed_transitions;
-  bool m_initialized;
 };
-
-#endif
