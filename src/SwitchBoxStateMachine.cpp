@@ -12,6 +12,15 @@
 typedef class Fsm<Trigger> Sbsm;
 std::vector<Sbsm *> stateMachines;
 
+// Used to allow a vector of references
+struct StateW {
+  State &state;
+};
+
+Trigger operator++(Trigger t) {
+  return (Trigger)(t + 1);
+}
+
 #define FSM(FSM_NAME) fsm_##FSM_NAME
 
 #define SBSM(FSM_NAME, STATE_NAME)                                                         \
@@ -45,15 +54,17 @@ std::vector<Sbsm *> stateMachines;
     TRANSITION(FSM_NAME, kTrigger_##FSM_NAME##_bypass, engage, bypass); \
   }
 
-#define TOGGLE_FSM_PIN(FSM_NAME)                                                      \
-  TOGGLE_FSM(                                                                         \
-      FSM_NAME,                                                                       \
-      {                                                                               \
-        abo_digitalWrite({kABIPinShiftRegister, kSout_engage_##FSM_NAME}, SOUT_HIGH); \
-      },                                                                              \
-      {                                                                               \
-        abo_digitalWrite({kABIPinShiftRegister, kSout_engage_##FSM_NAME}, SOUT_LOW);  \
+#define TOGGLE_FSM_PIN_CUSTOM(FSM_NAME, OP, SOUT_ENGAGE, SOUT_BYPASS)                   \
+  TOGGLE_FSM(                                                                           \
+      FSM_NAME,                                                                         \
+      {                                                                                 \
+        abo_digitalWrite({kABIPinShiftRegister, kSout_##OP##_##FSM_NAME}, SOUT_ENGAGE); \
+      },                                                                                \
+      {                                                                                 \
+        abo_digitalWrite({kABIPinShiftRegister, kSout_##OP##_##FSM_NAME}, SOUT_BYPASS); \
       })
+
+#define TOGGLE_FSM_PIN(FSM_NAME) TOGGLE_FSM_PIN_CUSTOM(FSM_NAME, engage, SOUT_HIGH, SOUT_LOW)
 
 #define CYCLE_FSM_STATES(FSM_NAME)                                                                   \
   constexpr size_t FSM_NAME##_STATE_COUNT = kTrigger_##FSM_NAME##_end - kTrigger_##FSM_NAME##_begin; \
@@ -82,17 +93,35 @@ std::vector<Sbsm *> stateMachines;
     }                                                                                      \
   }
 
-STATE(input, digital);
-STATE(input, analog);
-STATE(input, aux);
-SBSM(input, digital) {
-  TRANSITION(input, kTrigger_input_next, digital, analog);
-}
+STATE1(input, digital, {
+  abo_digitalWrite({kABIPinShiftRegister, kSout_input_a}, SOUT_LOW);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_input_b}, SOUT_LOW);
+});
+STATE1(input, analog, {
+  abo_digitalWrite({kABIPinShiftRegister, kSout_input_a}, SOUT_HIGH);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_input_b}, SOUT_LOW);
+});
+STATE1(input, aux, {
+  abo_digitalWrite({kABIPinShiftRegister, kSout_input_a}, SOUT_HIGH);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_input_b}, SOUT_HIGH);
+});
+CYCLE_FSM_STATES(input){{state_input_digital}, {state_input_analog}, {state_input_aux}};
+CYCLE_FSM(input);
 
-STATE(mode, day);
-STATE(mode, night);
-STATE(mode, off);
-SBSM(mode, day);
+STATE1(mode, day, {
+  sbsm_trigger(kTrigger_subwoofer_engage);
+  sbsm_trigger(kTrigger_mute_bypass);
+});
+STATE1(mode, night, {
+  sbsm_trigger(kTrigger_subwoofer_bypass);
+  sbsm_trigger(kTrigger_mute_bypass);
+});
+STATE1(mode, off, {
+  sbsm_trigger(kTrigger_subwoofer_bypass);
+  sbsm_trigger(kTrigger_mute_engage);
+});
+CYCLE_FSM_STATES(mode){{state_mode_day}, {state_mode_night}, {state_mode_off}};
+CYCLE_FSM(mode);
 
 // State       OutputA  OutputB  Headphones  Trigger
 // Geshelli    low      (low)    low         -
@@ -122,10 +151,6 @@ STATE1(output, adc, {
   abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_HIGH);
 });
 
-struct StateW {
-  State &state;
-};
-
 CYCLE_FSM_STATES(output){{state_output_geshelli}, {state_output_valhalla}, {state_output_speakers}, {state_output_adc}};
 CYCLE_FSM(output);
 
@@ -143,7 +168,7 @@ SBSM(valhalla, bypass) {
   TRANSITION(valhalla, kTrigger_valhalla_release, bypass_force_engage, bypass);
   TRANSITION(valhalla, kTrigger_valhalla_release, engage_force_engage, engage);
 };
-TOGGLE_FSM(subwoofer, {/* engage */}, {/* bypass */});
+TOGGLE_FSM_PIN_CUSTOM(subwoofer, disable, SOUT_LOW, SOUT_HIGH);
 TOGGLE_FSM_PIN(level);
 TOGGLE_FSM_PIN(mute);
 

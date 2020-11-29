@@ -17,6 +17,13 @@
 #define TOGGLE_FSM(FSM_NAME) TRIGGER(FSM_NAME, toggle), TRIGGER(FSM_NAME, bypass), TRIGGER(FSM_NAME, engage)
 
 enum Trigger {
+  kTriggerNone = 0,
+
+  TRIGGER(mode, day),
+  TRIGGER(mode, night),
+  TRIGGER(mode, off),
+  CYCLE_FSM(mode, day),
+
   TRIGGER(input, digital),
   TRIGGER(input, analog),
   TRIGGER(input, aux),
@@ -46,9 +53,7 @@ enum Trigger {
   CYCLE_FSM(menu, none),
 };
 
-Trigger operator++(Trigger t) {
-  return (Trigger)(t + 1);
-}
+Trigger operator++(Trigger t);
 
 #undef TOGGLE_FSM
 

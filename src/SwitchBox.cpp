@@ -320,7 +320,7 @@ void hydra_loop() {
     Multi_OLEDFill(i, 0);
     Multi_OLEDSetContrast(i, 255);
     Multi_OLEDWriteString(i, 0, 0, (char *)"Display", FONT_SMALL, 0);
-    sprintf(hydraLabel, "Num: %d", i + 3);
+    sprintf(hydraLabel, "Num: %d", i + 4);
     Multi_OLEDWriteString(i, 0, 2, hydraLabel, FONT_NORMAL, 0);
   }
 }
