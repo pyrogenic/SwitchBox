@@ -76,7 +76,7 @@
 #if DEVICE == NANO
 #define ONE_WIRE_BUS 2
 
-// SSD1331 Nano/Atmega328 PINS: connect LCD to D5 (D/C), D4 (CS), D3 (RES), D11(SDA), D13(SCL)
+// SSD1331 / ST7735 Nano/Atmega328 PINS: connect LCD to D5 (D/C), D4 (CS), D3 (RES), D11(SDA), D13(SCL)
 #define SSD1331_SCL 13
 #define SSD1331_SDA 11
 #define SSD1331_RES 3

@@ -34,10 +34,21 @@
 #define PROGNAME "SwitchBox"
 #define VERSION "0.4.1"
 
+template <typename T> struct W { T value; };
+
+// 74165 in circuit?
+#define ABI_ENABLED 1
+// 74595 in circuit?
+#define ABO_ENABLED 1
+
+#define ABI_TEST 1
+#define ABO_TEST 1
+
 #define WHITE_OLED 1
 #define COLOR_OLED 2
+#define COLOR_TFT 3
 
-#define DISPLAY_TYPE COLOR_OLED
+#define DISPLAY_TYPE COLOR_TFT
 #define USE_ROTARY_INPUT 0
 #define USE_BUTTON_NAV 1
 #define DEBUG_COLOR_DRAW 0
@@ -46,16 +57,28 @@
 
 #if DISPLAY_TYPE == WHITE_OLED
 DisplaySSD1306_128x64_I2C display(-1);
-#define DISPLAY_WIDTH (128)
+void display_setup() {
+  display.getInterface().setRotation(2);
+  display.getInterface().setOffset(2, 2);
+}
 #define COLOR_BLACK BLACK
 #define COLOR_RED WHITE
 #define COLOR_GREEN WHITE
 #define COLOR_BLUE WHITE
-#elif DISPLAY_TYPE == COLOR_OLED
+#elif DISPLAY_TYPE == COLOR_OLED || DISPLAY_TYPE == COLOR_TFT
 #define SPI_FREQ 0
 SPlatformSpiConfig spiConfig = {-1, {SSD1331_CS}, SSD1331_DC, SPI_FREQ, -1, -1};
+#if DISPLAY_TYPE == COLOR_OLED
 DisplaySSD1331_96x64x16_SPI display(SSD1331_RES, spiConfig); // 8, {-1, 10, 9});
-#define DISPLAY_WIDTH (96)
+void display_setup() {
+}
+#else
+DisplayST7735_128x128x16_SPI display(SSD1331_RES, spiConfig);
+void display_setup() {
+  display.getInterface().setRotation(2);
+  display.getInterface().setOffset(2, 2);
+}
+#endif
 #define COLOR_BLACK RGB_COLOR16(0, 0, 0)
 #define COLOR_RED RGB_COLOR16(0xFFFF, 0, 0)
 #define COLOR_GREEN RGB_COLOR16(0, 0xFFFF, 0)
@@ -102,7 +125,8 @@ uint32_t frequency;
 #define DISPLAY_3_ADDR 0x3D
 #define DISPLAY_4_ADDR 0x3C
 SPlatformI2cConfig i2cConfig2 = {-1, DISPLAY_2_ADDR, SCL, SDA, 0};
-DisplaySSD1306_128x64_I2C display2(-1, i2cConfig2);
+// DisplaySSD1306_128x64_I2C display2(-1, i2cConfig2);
+DisplaySSD1327_128x128_I2C display2(-1, i2cConfig2);
 SPlatformI2cConfig i2cConfig3 = {-1, DISPLAY_3_ADDR, SCL, SDA, 0};
 DisplaySSD1306_128x64_I2C display3(-1, i2cConfig3);
 // DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display3(-1, A1, A3, DISPLAY_3_ADDR, 1200);
@@ -111,7 +135,7 @@ DisplaySSD1306_128x64_I2C display3(-1, i2cConfig3);
 #include <Multi_BitBang.h>
 #include <Multi_OLED.h>
 
-#define NUM_DISPLAYS 3
+#define NUM_DISPLAYS 2
 #define NUM_BUSES 2
 // I2C bus info
 uint8_t scl_list[NUM_BUSES] = {A1, A1}; //{9,9,9,9};
@@ -140,7 +164,7 @@ char *menuItems[MENU_ITEM_COUNT] = {};
 
 NanoRect menuRect() {
   auto result = display.rect();
-  result.p1.y = result.p2.y - 42;
+  result.p1.y = result.p1.y + 42;
   return result;
 }
 
@@ -193,6 +217,16 @@ void printRTCTime(bool aDoRefresh = true) {
 
 TimeFormat headerTimeFormat = new TimeFormat();
 
+#if ABI_TEST
+W<ButtonState> abiTestButtons[24];
+void abi_test_setup() {
+  for (int i = 0; i < 24; ++i) {
+    abiTestButtons[i].value.pin = {kABIPinShiftRegister, i};
+    debounce(abiTestButtons[i].value);
+  }
+}
+#endif
+
 void setup() {
   Serial.begin(9600);
   while (!Serial)
@@ -217,13 +251,19 @@ void setup() {
   abinit.data = SHIFT_IN_DATA;
   abinit.load = SHIFT_IN_LOAD;
   abinit.read = SHIFT_IN_READ;
+  abinit.bytes = 3;
   abi_setup(abinit);
 
   ABOnit abonit = {0};
   abonit.clk = SHIFT_CLK;
   abonit.data = SHIFT_OUT_DATA;
   abonit.load = SHIFT_OUT_LATCH;
+  abonit.bytes = 2;
   abo_setup(abonit);
+
+#if ABI_TEST
+  abi_test_setup();
+#endif
 
 #if USE_ROTARY_INPUT
   rotaryState.pinA.pin = {kABIPinShiftRegister, kSinRotaryA};
@@ -244,10 +284,13 @@ void setup() {
 
   sbsm_setup();
 
-  // for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
-  //   menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
-  //   strcpy(menuItems[i], sbsm_trigger_name((Trigger)i));
-  // }
+  for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
+    menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
+    strcpy(menuItems[i], sbsm_trigger_name((Trigger)i));
+  }
+
+  display_setup();
+  display.clear();
 
   display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect());
   SET_MENU_FONT();
@@ -293,7 +336,10 @@ char lastLabel2[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel3[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastTime[TIME_STRING_BUFFER_SIZE] = {0};
 
+#define HYDRA_SEARCH 0
+
 void hydra_loop() {
+#if HYDRA_SEARCH
   uint8_t i, j, bit, map[16];
   uint8_t addr;
   char szTemp[16];
@@ -315,6 +361,7 @@ void hydra_loop() {
       }
     }
   } // for each bus
+#endif
 
   for (int i = 0; i < NUM_DISPLAYS; i++) {
     Multi_OLEDFill(i, 0);
@@ -378,12 +425,17 @@ void loop() {
     delayMicroseconds(TICK_LENGTH - dt);
   }
   dt = micros() - ts;
-  avgTick = ((29.0f * avgTick) + dt) / 30.0f;
+  avgTick = ((29.0f * avgTick) + (float)dt) / 30.0f;
   ts += dt;
 
-  abi_loop();
-  sbsm_loop();
+  ++loopCount;
 
+#if ABI_ENABLED
+  abi_loop();
+#endif
+
+  sbsm_loop();
+#if false
 #if USE_ROTARY_INPUT
   RotaryAction action = rotary_loop(rotaryState);
   // if (action != kRotaryActionNone) {
@@ -455,7 +507,7 @@ void loop() {
   snprintf(label2, LABEL_STRING_BUFFER_SIZE, "%s", sbsm_subwoofer_label());
   headerTimeFormat.amPm = kTF_12H;
   headerTimeFormat.pad = false;
-  headerTimeFormat.seconds = false;
+  headerTimeFormat.seconds = true;
   rtc.format(time, TIME_STRING_BUFFER_SIZE, headerTimeFormat, true);
 
   if (strncmp(lastLabel0, label0, LABEL_STRING_BUFFER_SIZE) || strncmp(lastLabel1, label1, LABEL_STRING_BUFFER_SIZE) || strncmp(lastLabel2, label2, LABEL_STRING_BUFFER_SIZE) ||
@@ -466,52 +518,81 @@ void loop() {
     strncpy(lastLabel3, label3, LABEL_STRING_BUFFER_SIZE);
     strncpy(lastTime, time, TIME_STRING_BUFFER_SIZE);
 
+    NanoRect rect = display2.rect();
+    display2.clear();
+    display2.printFixed(rect.p1.x, rect.p1.y, "Display 2");
+    rect.move(0, 10);
+    display2.printFixed(rect.p1.x, rect.p1.y, "InBox");
+    rect.move(0, 10);
+    display2.printFixed(rect.p1.x, rect.p1.y, label0);
+    rect.move(0, 10);
+    display2.printFixed(rect.p1.x, rect.p1.y, time);
+
+    rect = display3.rect();
+    display3.clear();
+    display3.printFixed(rect.p1.x, rect.p1.y, "Display 3");
+    rect.move(0, 10);
+    display3.printFixed(rect.p1.x, rect.p1.y, "OutBox");
+    rect.move(0, 10);
+    display3.printFixed(rect.p1.x, rect.p1.y, label1);
+    rect.move(0, 10);
+    display3.printFixed(rect.p1.x, rect.p1.y, "subwoofer: ");
+    display3.printFixed(rect.p1.x + display3.getFont().getTextSize("subwoofer: "), rect.p1.y, label2);
+    rect.move(0, 10);
+    display3.printFixed(rect.p1.x, rect.p1.y, time);
+
     // INPUT  |_10:20_|  OUTPUT
     auto textWidth = display.getFont().getTextSize(time);
-    auto left = display.width() / 2 - textWidth / 2;
+    auto left = display.rect().p1.x + display.width() / 2 - textWidth / 2;
     auto right = left + textWidth;
-    NanoRect timeRect = {left, 0, right, 9};
+    NanoRect timeRect = {left, display.rect().p1.y, right, 9};
     display.setColor(0x31C8);
     display.fillRect(timeRect);
-    NanoRect rect = timeRect;
-    rect = {left, 0, right, 8};
+    rect = timeRect;
+    rect = {left, display.rect().p1.y, right, 8};
     display.setColor(COLOR_BLACK);
     display.fillRect(rect);
     display.setColor(0x5371);
     display.setFixedFont(digital_font5x7_AB);
-    display.printFixed(rect.p1.x, 0, time, STYLE_NORMAL);
+    display.printFixed(rect.p1.x, rect.p1.y, time, STYLE_NORMAL);
 
     textWidth = display.getFont().getTextSize("IN");
     left = timeRect.p1.x / 2 - textWidth / 2;
     right = left + textWidth;
-    rect = {left, 0, right, 8};
+    rect = {left, display.rect().p1.y, right, 8};
     display.setColor(COLOR_BLACK);
     display.fillRect(rect);
     display.setColor(COLOR_WHITE);
     display.printFixed(rect.p1.x, rect.p1.y + 2, "IN");
 
     textWidth = display.getFont().getTextSize("OUT");
-    Serial_printf("timeRect.p2.x = %d\n", timeRect.p2.x);
-    Serial_printf("textWidth = %d\n", textWidth);
-    Serial_printf("display.width() = %d\n", display.width());
+    // Serial_printf("timeRect.p2.x = %d\n", timeRect.p2.x);
+    // Serial_printf("textWidth = %d\n", textWidth);
+    // Serial_printf("display.width() = %d\n", display.width());
     left = timeRect.p2.x + (display.width() - timeRect.p2.x - textWidth) / 2;
     right = left + textWidth;
-    Serial_printf("left, right = %d, %d\n", left, right);
-    rect = {left, 0, right, 8};
+    // Serial_printf("left, right = %d, %d\n", left, right);
+    rect = {left, display.rect().p1.y, right, 8};
     display.setColor(COLOR_BLACK);
     display.fillRect(rect);
     display.setColor(COLOR_WHITE);
     display.printFixed(rect.p1.x, rect.p1.y + 2, "OUT");
 
-    rect = {0, timeRect.p2.y + 1, display.width(), timeRect.p2.y + 11};
+    rect = {display.rect().p1.x, timeRect.p2.y + 1, display.width(), timeRect.p2.y + 11};
     display.setColor(COLOR_BLACK);
     display.fillRect(rect);
-    display.setColor(COLOR_WHITE);
     display.setFreeFont(free_calibri11x12);
+
+    display.setColor(COLOR_RED);
     display.printFixed(rect.p1.x, rect.p1.y, label0);
+
     textWidth = display.getFont().getTextSize(label1);
     rect = {display.width() - textWidth, rect.p1.y, display.width(), rect.p2.y};
+    display.setColor(COLOR_GREEN);
     display.printFixed(rect.p1.x, rect.p1.y, label1);
+    rect.move(0, 11);
+    display.setColor(COLOR_YELLOW);
+    display.printFixed(rect.p1.x, rect.p1.y, label2);
 
     /*
 
@@ -525,8 +606,47 @@ void loop() {
         display.printFixed(rect.p2.x - display.getFont().getTextSize(label1), rect.p1.y, label1, STYLE_NORMAL);
       */
   }
+#endif
 
+#if ABI_TEST
+  bool anyChange = false;
+  for (int b = 0; b < 24; ++b) {
+    ButtonState &button = abiTestButtons[b].value;
+    if (debounce(button)) {
+      anyChange = true;
+      if (!button.value) {
+        Serial_printf("Button Up: %02x\n", b);
+      }
+    }
+  }
+  if (anyChange) {
+    // display3.clear();
+    auto stepX = display3.width() / 8;
+    auto stepY = display3.height() / 3;
+    for (int b = 0; b < 24; ++b) {
+      ButtonState &button = abiTestButtons[b].value;
+      NanoRect rect = {1, 1, stepX - 1, stepY - 1};
+      rect.move((b % 8) * stepX, (b / 8) * stepY);
+      display3.setColor(button.last ? WHITE : BLACK);
+      display3.fillRect(rect);
+      display3.setColor(button.last ? BLACK : WHITE);
+      char str[10] = {0};
+      snprintf(str, 10, "%02x", b);
+      display3.setFixedFont(ssd1306xled_font5x7);
+      display3.printFixed(rect.p1.x, rect.p1.y, str);
+    }
+  }
+#endif
+
+#if ABO_TEST
+  for (int b = 0; b < 16; ++b) {
+    abo_digitalWrite({kABIPinShiftRegister, b}, loopCount & (1 << b) ? SOUT_HIGH : SOUT_LOW);
+  }
+#endif
+
+#if ABO_ENABLED
   abo_loop();
+#endif
 
   // if (debounce(buttonRed) && buttonRed.value) {
   // }
@@ -554,14 +674,15 @@ void loop() {
 #endif
   dt = micros() - debug_ts;
   if (dt > DEBUG_INTERVAL) {
+    Serial_printf("Tick %u: Avg Tick: %dµs\n", loopCount, (int)(avgTick));
+
     // abi_debug();
     // abo_debug();
 
-    // Serial_printf("Avg Tick: %dµs, (x, y) = (%d, %d)\n", (int)(avgTick), display.rect().p2.x, display.rect().p2.y);
-    ser.println(time);
+    // ser.println(time);
 
     // i2cScan();
-    hydra_loop();
+    // hydra_loop();
     // printRTCTime();
     // printRTCTemperature();
 

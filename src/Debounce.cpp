@@ -2,9 +2,9 @@
 
 #include <Arduino.h>
 
-#define DEBUG_DEBOUNCE
+#define DEBUG_DEBOUNCE 0
 
-#ifdef DEBUG_DEBOUNCE
+#if DEBUG_DEBOUNCE
 #include "DebugLine.h";
 #endif
 
@@ -21,7 +21,7 @@ bool debounce(ButtonState &buttonState, bool raw) {
     // reset the debouncing timer
     buttonState.last = reading;
     buttonState.debounce = millis();
-#ifdef DEBUG_DEBOUNCE
+#if DEBUG_DEBOUNCE
     Serial_printf("Debounce: ~%d~ %d.%d\n", reading, buttonState.pin.type, buttonState.pin.pin);
 #endif
   }
@@ -36,7 +36,7 @@ bool debounce(ButtonState &buttonState, bool raw) {
     // if the button state has changed:
     if (reading != buttonState.value) {
       buttonState.value = reading;
-#ifdef DEBUG_DEBOUNCE
+#if DEBUG_DEBOUNCE
       Serial_printf("Debounce: UP: %d.%d\n", buttonState.pin.type, buttonState.pin.pin);
 #endif
       return true;

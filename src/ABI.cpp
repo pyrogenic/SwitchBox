@@ -46,8 +46,8 @@ void abi_loop() {
   // Enable read
   digitalWrite(ABI::pin_read, LOW);
   digitalWrite(ABI::pin_clk, LOW); // should be redundant
-  // Read from shift ABI::registers, least-significant byte first
-  for (int r = 0; r < ABI::registerCount; ++r) {
+  // Read from shift ABI::registers, most-significant byte first
+  for (int r = ABI::registerCount - 1; r >= 0; --r) {
     // ABI::registers[i] = shiftIn(ABI::pin_data, ABI::pin_clk, LSB_FIRST);
     byte value = 0;
     for (int i = 7; i >= 0; --i) {

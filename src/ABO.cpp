@@ -73,15 +73,23 @@ void abo_digitalWrite(const Pin &pin, bool value) {
     break;
 
   case kABIPinShiftRegister:
-    Serial_printf("digitalWrite(%d, %d)\n", pin.pin, value);
     const int registerIndex = pin.pin / BITS_PER_BYTE;
     const int bit = 1 << (pin.pin % BITS_PER_BYTE);
     const int bitValue = value ? bit : 0;
-    Serial_printf("  registerIndex: %d\n", registerIndex);
-    Serial_printf("  bit: %d\n", bit);
-    Serial_printf("  bitValue: %d\n", bitValue);
-    ABO::registers[registerIndex] = (ABO::registers[registerIndex] & ~bit) | bitValue;
-    abo_debug();
+    const byte oldValue = ABO::registers[registerIndex];
+    const byte newValue = (oldValue & ~bit) | bitValue;
+    if (oldValue != newValue) {
+      ABO::registers[registerIndex] = newValue;
+#if ABO_DEBUG
+      Serial_printf("digitalWrite(%d, %d)\n", pin.pin, value);
+      Serial_printf("  registerIndex: %d\n", registerIndex);
+      Serial_printf("  bit: %d\n", bit);
+      Serial_printf("  bitValue: %d\n", bitValue);
+      Serial_printf("  oldValue: %d\n", oldValue);
+      Serial_printf("  newValue: %d\n", newValue);
+      abo_debug();
+#endif
+    }
     break;
 
     // default:
