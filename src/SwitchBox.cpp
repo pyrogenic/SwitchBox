@@ -51,7 +51,6 @@ template <typename T> struct W { T value; };
 #define DISPLAY_TYPE COLOR_TFT
 #define USE_ROTARY_INPUT 0
 #define USE_BUTTON_NAV 1
-#define DEBUG_COLOR_DRAW 0
 
 #define MENU_MODE_SMOOTH 1
 
@@ -656,22 +655,6 @@ void loop() {
   //   sbsm_trigger(kTriggerSelectOutputMonitor);
   // }
 
-#if DEBUG_COLOR_DRAW
-  if (debounce(button4) && !button4.value) {
-    x--;
-  }
-  if (debounce(button5) && !button5.value) {
-    x++;
-  }
-  if (debounce(button6) && !button6.value) {
-    y--;
-  }
-  if (debounce(button7) && !button7.value) {
-    y++;
-  }
-  x = x % (DISPLAY_WIDTH - 8);
-  y = y % (display.height() - 8);
-#endif
   dt = micros() - debug_ts;
   if (dt > DEBUG_INTERVAL) {
     Serial_printf("Tick %u: Avg Tick: %dµs\n", loopCount, (int)(avgTick));
@@ -685,12 +668,6 @@ void loop() {
     // hydra_loop();
     // printRTCTime();
     // printRTCTemperature();
-
-#if DEBUG_COLOR_DRAW
-    NanoRect rect = {x, y, x + 8, y + 8};
-    display.setColor(ts);
-    display.fillRect(rect);
-#endif
 
     debug_ts = micros();
   }
