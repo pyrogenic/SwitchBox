@@ -123,14 +123,22 @@ STATE1(mode, off, {
 CYCLE_FSM_STATES(mode){{state_mode_day}, {state_mode_night}, {state_mode_off}};
 CYCLE_FSM(mode);
 
-// State       OutputA  OutputB  Headphones  Trigger
-// Geshelli    low      (low)    low         -
-// Valhalla    high     high     high        <engage valhalla>    // will bypass attenuator
-// Speakers    high     low      (low)
-// ADC         high     high     (low)
+// State       OutputA  OutputB  OutputC  Headphones  Trigger
+// Geshelli    low      (low)    (low)    low         -
+// Monolith    high     low      (low)    (low)       -
+// Speakers    high     high     low      (low)
+// ADC         high     high     high     (low)
+// Valhalla    high     high     high     high        <engage valhalla>    // will bypass attenuator
 STATE1(output, geshelli, {
   abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_LOW);
   abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_LOW);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_c}, SOUT_LOW);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_headphones}, SOUT_LOW);
+});
+STATE1(output, monolith, {
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_HIGH);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_LOW);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_c}, SOUT_LOW);
   abo_digitalWrite({kABIPinShiftRegister, kSout_headphones}, SOUT_LOW);
 });
 STATE2(
@@ -138,20 +146,23 @@ STATE2(
     {
       abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_HIGH);
       abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_HIGH);
+      abo_digitalWrite({kABIPinShiftRegister, kSout_output_c}, SOUT_HIGH);
       abo_digitalWrite({kABIPinShiftRegister, kSout_headphones}, SOUT_HIGH);
       sbsm_trigger(kTrigger_valhalla_force);
     },
     { sbsm_trigger(kTrigger_valhalla_release); });
 STATE1(output, speakers, {
   abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_HIGH);
-  abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_LOW);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_HIGH);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_c}, SOUT_LOW);
 });
 STATE1(output, adc, {
   abo_digitalWrite({kABIPinShiftRegister, kSout_output_a}, SOUT_HIGH);
   abo_digitalWrite({kABIPinShiftRegister, kSout_output_b}, SOUT_HIGH);
+  abo_digitalWrite({kABIPinShiftRegister, kSout_output_c}, SOUT_HIGH);
 });
 
-CYCLE_FSM_STATES(output){{state_output_geshelli}, {state_output_valhalla}, {state_output_speakers}, {state_output_adc}};
+CYCLE_FSM_STATES(output){{state_output_geshelli}, {state_output_monolith}, {state_output_valhalla}, {state_output_speakers}, {state_output_adc}};
 CYCLE_FSM(output);
 
 TOGGLE_FSM_PIN(loki);

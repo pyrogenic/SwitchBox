@@ -164,11 +164,11 @@ typedef enum {
 
   kSout_output_a = 0x0A,
   kSout_output_b = 0x0B,
-  kSout_disable_subwoofer = 0x0C,
-  kSout_headphones = 0x0D,
+  kSout_output_c = 0x0C,
+  kSout_disable_subwoofer = 0x0D,
   kSout_engage_mute = 0x0E,
+  kSout_headphones = 0x0F,
 
-  kSout0x0F = 0x0F,
 } ShiftOutBit;
 
 #define INVERT_RELAY_CONTROL 1

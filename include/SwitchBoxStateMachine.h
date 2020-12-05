@@ -30,6 +30,7 @@ enum Trigger {
   CYCLE_FSM(input, digital),
 
   TRIGGER(output, geshelli),
+  TRIGGER(output, monolith),
   TRIGGER(output, valhalla),
   TRIGGER(output, speakers),
   TRIGGER(output, adc),
