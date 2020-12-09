@@ -21,7 +21,7 @@ Trigger operator++(Trigger t) {
   return (Trigger)(t + 1);
 }
 
-#define FSM(FSM_NAME) fsm_##FSM_NAME
+#define FSM(FSM_NAME) sbsm_##FSM_NAME
 
 #define SBSM(FSM_NAME, STATE_NAME)                                                         \
   Sbsm FSM(FSM_NAME)(#FSM_NAME, state_##FSM_NAME##_##STATE_NAME);                          \
@@ -202,7 +202,7 @@ void sbsm_trigger(Trigger event) {
   }
 }
 
-typedef struct MenuDef {
+struct MenuDef {
   Trigger trigger;
   const char *label;
 };

@@ -1,13 +1,3 @@
-/*
-  DigitalReadSerial
-
-  Reads a digital input on pin 2, prints the result to the Serial Monitor
-
-  This example code is in the public domain.
-
-  http://www.arduino.cc/en/Tutorial/DigitalReadSerial
-*/
-
 #define CONFIG_ARDUINO_SPI_ENABLE
 
 #include "SwitchBox.h"
@@ -15,9 +5,9 @@
 #include "ABO.h"
 #include "Debounce.h"
 #include "DebugLine.h"
+#include "Menu.h"
 #include "RealTimeClock.h"
 #include "RotaryEncoder.h"
-#include "SoftWireI2C.h"
 #include "SwitchBoxStateMachine.h"
 #include "Temperature.h"
 #include <Multi_OLED.h>
@@ -26,6 +16,8 @@
 #include <Wire.h>
 #include <canvas/canvas_types.h>
 #include <lcdgfx.h>
+
+// #if defined(ESP32) || defined(ESP8266)
 
 #ifndef PSTR
 #define PSTR(A) A
@@ -128,9 +120,14 @@ SPlatformI2cConfig i2cConfig2 = {-1, DISPLAY_2_ADDR, SCL, SDA, 0};
 DisplaySSD1327_128x128_I2C display2(-1, i2cConfig2);
 SPlatformI2cConfig i2cConfig3 = {-1, DISPLAY_3_ADDR, SCL, SDA, 0};
 DisplaySSD1306_128x64_I2C display3(-1, i2cConfig3);
+// #include "SoftWireI2C.h"
 // DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display3(-1, A1, A3, DISPLAY_3_ADDR, 1200);
 // DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display4(-1, SCL_3, SDA_3, DISPLAY_4_ADDR);
 
+#define HYDRA 0
+#define HYDRA_SEARCH 0
+
+#if HYDRA
 #include <Multi_BitBang.h>
 #include <Multi_OLED.h>
 
@@ -152,19 +149,55 @@ void hydra_setup() {
   Multi_I2CInit(sda_list, scl_list, speed_list, NUM_BUSES);
   Multi_OLEDInit(bus_list, addr_list, type_list, flip_list, invert_list, NUM_DISPLAYS);
 } // setup
+#else
+void hydra_setup() {
+}
+#endif
 
 #define SET_MENU_FONT()                      \
   display.setFixedFont(ssd1306xled_font5x7); \
   display.setColor(COLOR_MENU_TEXT)
 
-SAppMenu menu;
-#define MENU_ITEM_COUNT (0)
-char *menuItems[MENU_ITEM_COUNT] = {};
+typedef NanoEngine16<DisplayST7735_128x128x16_SPI> PrimaryDisplayEngine;
+typedef typeof(COLOR_BLACK) PrimaryDisplayColor;
+typedef PrimaryDisplayEngine::TilerT PrimaryDisplayTiler;
 
-NanoRect menuRect() {
-  auto result = display.rect();
-  result.p1.y = result.p1.y + 42;
-  return result;
+PrimaryDisplayEngine engine(display);
+
+CSS<PrimaryDisplayColor> menuStyle = {0, 0, 0, 0, 1, 1, 1, 1, COLOR_MENU_TEXT, COLOR_BLACK};
+PicoMenu<PrimaryDisplayTiler, PrimaryDisplayColor> menu(menuStyle);
+
+CSS<PrimaryDisplayColor> menuItemStyle = {1, 1, 1, 0, 2, 1, 2, 1, COLOR_MENU_TEXT, COLOR_BLACK};
+PicoMenuItem<PrimaryDisplayTiler, PrimaryDisplayColor> item1("First menu item", menuItemStyle);
+PicoMenuItem<PrimaryDisplayTiler, PrimaryDisplayColor> item3("Demo", menuItemStyle);
+
+void engine_setup() {
+  engine.setFrameRate(30);
+  engine.begin();
+}
+
+void engine_loop() {
+  if (!engine.nextFrame())
+    return;
+  engine.update();
+  engine.display();
+}
+
+void testmenu_setup() {
+  // SET_MENU_FONT();
+
+  engine.getCanvas().setFreeFont(free_calibri11x12);
+  engine.getCanvas().setMode(CANVAS_MODE_TRANSPARENT);
+  menu.setPos({10, 10});
+  menu.setSize({display.width() - 20, display.height() - 20});
+  menu.add(item1);
+  menu.add(item3);
+  engine.insert(menu);
+
+  engine.refresh();
+}
+
+void testmenu_loop() {
 }
 
 #if USE_ROTARY_INPUT
@@ -234,6 +267,17 @@ void setup() {
   Serial.println(F("START " __FILE__));
   Serial.println(F(PROGNAME " Version " VERSION " built on " __DATE__));
 
+  bool waiting = true;
+  while (waiting) {
+    int c = Serial.read();
+    if (c == ' ') {
+      waiting = false;
+    } else {
+      Serial.write(c);
+      delay(1000);
+    }
+  }
+
   ser.begin(9600);
 
   // Start the I2C Bus as Master
@@ -283,21 +327,23 @@ void setup() {
 
   sbsm_setup();
 
-  for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
-    menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
-    strcpy(menuItems[i], sbsm_trigger_name((Trigger)i));
-  }
+  // for (size_t i = 0; i < MENU_ITEM_COUNT; i++) {
+  //   menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
+  //   strcpy(menuItems[i], sbsm_trigger_name((Trigger)i));
+  // }
 
   display_setup();
   display.clear();
 
-  display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect());
-  SET_MENU_FONT();
-#if MENU_MODE_SMOOTH
-  display.showMenuSmooth(&menu);
-#else
-  display.showMenu(&menu);
-#endif
+  engine_setup();
+  testmenu_setup();
+  //   display.createMenu(&menu, const_cast<const char **>(menuItems), sizeof(menuItems) / sizeof(char *), menuRect());
+  //   SET_MENU_FONT();
+  // #if MENU_MODE_SMOOTH
+  //   display.showMenuSmooth(&menu);
+  // #else
+  //   display.showMenu(&menu);
+  // #endif
   // }
 
   // Multi_OLEDWriteCommand2(0x81, ucContrast);
@@ -335,8 +381,7 @@ char lastLabel2[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel3[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastTime[TIME_STRING_BUFFER_SIZE] = {0};
 
-#define HYDRA_SEARCH 0
-
+#if HYDRA
 void hydra_loop() {
 #if HYDRA_SEARCH
   uint8_t i, j, bit, map[16];
@@ -370,6 +415,10 @@ void hydra_loop() {
     Multi_OLEDWriteString(i, 0, 2, hydraLabel, FONT_NORMAL, 0);
   }
 }
+#else
+void hydra_loop() {
+}
+#endif
 
 // the loop routine runs over and over again forever:
 float avgTick = 0;
@@ -419,6 +468,8 @@ bool menuUpdate = true;
 uint32_t loopCount(0);
 
 void loop() {
+  engine_loop();
+
   auto dt = micros() - ts;
   if (dt < TICK_LENGTH) {
     delayMicroseconds(TICK_LENGTH - dt);
@@ -432,6 +483,8 @@ void loop() {
 #if ABI_ENABLED
   abi_loop();
 #endif
+
+  testmenu_loop();
 
   sbsm_loop();
 #if false
@@ -655,22 +708,22 @@ void loop() {
   //   sbsm_trigger(kTriggerSelectOutputMonitor);
   // }
 
-  dt = micros() - debug_ts;
-  if (dt > DEBUG_INTERVAL) {
-    Serial_printf("Tick %u: Avg Tick: %dµs\n", loopCount, (int)(avgTick));
+  // dt = micros() - debug_ts;
+  // if (dt > DEBUG_INTERVAL) {
+  //   //Serial_printf("Tick %u: Avg Tick: %dµs\n", loopCount, (int)(avgTick));
 
-    // abi_debug();
-    // abo_debug();
+  //   // abi_debug();
+  //   // abo_debug();
 
-    // ser.println(time);
+  //   // ser.println(time);
 
-    // i2cScan();
-    // hydra_loop();
-    // printRTCTime();
-    // printRTCTemperature();
+  //   // i2cScan();
+  //   // hydra_loop();
+  //   // printRTCTime();
+  //   // printRTCTemperature();
 
-    debug_ts = micros();
-  }
+  //   debug_ts = micros();
+  // }
 }
 
 /*

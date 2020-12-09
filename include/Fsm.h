@@ -19,9 +19,9 @@
 
 #define FSM_CALLBACK(name) void (*name)()
 
-typedef struct State {
-  State(PROGMEM const char *name, void (*on_enter)(), void (*on_state)(), void (*on_exit)()) : name(name), on_enter(on_enter), on_state(on_state), on_exit(on_exit) {}
-  PROGMEM const char *name;
+struct State {
+  State(const char *name, void (*on_enter)(), void (*on_state)(), void (*on_exit)()) : name(name), on_enter(on_enter), on_state(on_state), on_exit(on_exit) {}
+  const char *name;
   FSM_CALLBACK(on_enter);
   FSM_CALLBACK(on_state);
   FSM_CALLBACK(on_exit);
@@ -29,7 +29,7 @@ typedef struct State {
 
 template <typename Event> class Fsm {
 public:
-  Fsm(PROGMEM const char *name, State &initial_state);
+  Fsm(const char *name, State &initial_state);
   ~Fsm();
 
   void add_transition(State &state_from, State &state_to, Event event, FSM_CALLBACK(on_transition));
@@ -61,7 +61,7 @@ private:
   void make_transition(Transition *transition);
 
 private:
-  PROGMEM const char *m_name;
+  const char *m_name;
   bool m_initialized;
 
   State &m_current_state;

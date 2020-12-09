@@ -16,8 +16,7 @@
 #include "Fsm.h"
 
 template <typename Event>
-Fsm<Event>::Fsm(PROGMEM const char *name, State &initial_state)
-    : m_name(name), m_current_state(initial_state), m_transitions(NULL), m_num_transitions(0), m_num_timed_transitions(0), m_initialized(false) {
+Fsm<Event>::Fsm(const char *name, State &initial_state) : m_name(name), m_initialized(false), m_current_state(initial_state), m_transitions(NULL), m_num_transitions(0), m_num_timed_transitions(0) {
 }
 
 template <typename Event> Fsm<Event>::~Fsm() {

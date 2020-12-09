@@ -57,6 +57,7 @@ enum Trigger {
 Trigger operator++(Trigger t);
 
 #undef TOGGLE_FSM
+#undef CYCLE_FSM
 
 extern std::map<Trigger, const char *> triggerNames;
 

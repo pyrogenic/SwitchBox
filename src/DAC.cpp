@@ -1,9 +1,11 @@
 #include "DAC.h"
 
 void DAC::setup() {
+#if DAC == PCF8591
   found = pcf8591.begin(i2caddr, theWire);
   Serial.print("DAC: connected? ");
   Serial.println(found ? "yes" : "no");
+#endif
 }
 
 void DAC::debug() {
@@ -11,7 +13,8 @@ void DAC::debug() {
     return;
   }
 
-  // static uint8_t debugLoop = 0;
+#if DAC == PCF8591
+  // static byte debugLoop(0);
 
   int ana = pcf8591.analogRead(AIN0);
   Serial.print("AIN0 --> ");
@@ -31,4 +34,5 @@ void DAC::debug() {
 
   // pcf8591.analogWrite(++debugLoop);
   // debugLoop = debugLoop % 256;
+#endif
 }

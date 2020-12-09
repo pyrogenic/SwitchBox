@@ -36,6 +36,7 @@
 #define XIAO 1
 #define MINI 2
 #define NANO 3
+#define ESP32 3
 
 #if DEVICE == XIAO
 
@@ -103,6 +104,38 @@
 
 #endif
 
+#if DEVICE == ESP32
+// 12,13,14,15 used for JLINK
+
+//       27  26  25 33 32 35 34 VN VP EN
+// D2 D4 RX2 TX2 D5 18 19 21 RX0 TX0 22 24
+#define ONE_WIRE_BUS 2
+
+// SSD1331 / ST7735 Nano/Atmega328 PINS: connect LCD to D5 (D/C), D4 (CS), D3 (RES), D11(SDA), D13(SCL)
+#define SSD1331_SCL 13
+#define SSD1331_SDA 11
+#define SSD1331_RES 3
+#define SSD1331_DC 5
+#define SSD1331_CS 4
+
+// SR_IN CLK, SH_OUT CLK
+#define SHIFT_CLK 6
+
+// SR_IN Q
+#define SHIFT_IN_DATA 7
+// SR_IN SH (take low to load)
+#define SHIFT_IN_LOAD 8
+// SR_IN CLK_INH (take low to read)
+#define SHIFT_IN_READ 9
+
+// Need a 74595 for the latched output, otherwise the serially-loaded bits will ghost over the relays
+// !OE should be held low
+// SR_OUT SER
+#define SHIFT_OUT_DATA 10
+// SR_OUT RCLK
+// trying A0 (14) b/c D12 didn't seem to work
+#define SHIFT_OUT_LATCH A0
+#endif
 typedef enum {
   // // Connected to CLK on KY-040
   // // Connected to A (11) on 74165
@@ -138,12 +171,12 @@ typedef enum {
   kSin0x11 = 0x11,
 
   kSinOutGeshelli = 0x12,
-  kSinOutValhalla = 0x13,
-  kSinOutSpeakers = 0x14,
-  kSinOutSubwoofer = 0x15,
-  kSinOutADC = 0x16,
+  kSinOutMonolith = 0x12,
+  kSinOutValhalla = 0x14,
+  kSinOutSpeakers = 0x15,
+  kSinOutSubwoofer = 0x16,
+  kSinOutADC = 0x17,
 
-  kSin0x17 = 0x17,
 } ShiftInBit;
 
 typedef enum {

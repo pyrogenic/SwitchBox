@@ -1,5 +1,9 @@
 #pragma once
 
+#define NONE 0
+#define PCF8591 1
+
+#if DAC == PCF8591
 // Make sure that this is set to the value in volts of VCC
 #define ADC_REFERENCE_VOLTAGE 5.0
 #include <Adafruit_PCF8591.h>
@@ -25,3 +29,12 @@ private:
   bool found;
   Adafruit_PCF8591 pcf8591;
 };
+#else
+class DAC {
+public:
+  DAC() {}
+  void setup();
+  bool available() const { return false; }
+  void debug();
+};
+#endif
