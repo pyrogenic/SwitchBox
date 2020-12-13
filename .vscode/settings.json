@@ -54,8 +54,11 @@
         "valarray": "cpp",
         "random": "cpp",
         "cstdint": "cpp",
-        "serstream": "cpp"
+        "serstream": "cpp",
+        "climits": "cpp",
+        "support": "cpp"
     },
     "editor.formatOnSave": true,
-    "C_Cpp.vcFormat.wrap.preserveBlocks": "never"
+    "C_Cpp.vcFormat.wrap.preserveBlocks": "never",
+    "files.autoSave": "onFocusChange"
 }

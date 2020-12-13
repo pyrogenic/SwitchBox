@@ -9,6 +9,7 @@
 #include <string>
 
 #include "Fsm.h"
+#include "Menu.h"
 
 #define TRIGGER(FSM_NAME, ITEM_NAME) kTrigger_##FSM_NAME##_##ITEM_NAME
 
@@ -69,3 +70,17 @@ const char *sbsm_output_label();
 void sbsm_setup();
 void sbsm_loop();
 void sbsm_trigger(Trigger state);
+
+typedef class Fsm<Trigger> Sbsm;
+
+class TriggerMenu : public Menu {
+public:
+  TriggerMenu(Trigger event, const char *name, Fsm<Trigger> *fsm, State *state) : Menu(name), m_trigger(event), m_fsm(fsm), m_state(state) {}
+  void onEnter() override;
+  bool isChecked() override;
+
+private:
+  Trigger m_trigger;
+  Fsm<Trigger> *m_fsm;
+  State *m_state;
+};

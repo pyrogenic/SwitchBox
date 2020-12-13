@@ -9,7 +9,6 @@
 // This is how you avoid defining template bodies in the header
 // https://stackoverflow.com/a/36825508
 #include "Fsm.cpp"
-typedef class Fsm<Trigger> Sbsm;
 std::vector<Sbsm *> stateMachines;
 
 // Used to allow a vector of references
@@ -203,17 +202,30 @@ void sbsm_trigger(Trigger event) {
 }
 
 struct MenuDef {
+  Menu &menu;
   Trigger trigger;
   const char *label;
+  Sbsm *fsm;
+  State *state;
 };
 
+Menu inputMenu("Input");
+Menu preampMenu("Preamp");
+Menu outputMenu("Output");
+
 MenuDef menuDefs[] = {
-    {kTrigger_input_next, "Next Input"},
+    {inputMenu, kTrigger_input_next, "Next Input", nullptr, nullptr},
+    {inputMenu, kTrigger_input_digital, "Digital", &sbsm_input, &state_input_digital},
+    {inputMenu, kTrigger_input_analog, "Digital", &sbsm_input, &state_input_analog},
+    {inputMenu, kTrigger_input_aux, "Aux", &sbsm_input, &state_input_aux},
 };
 
 void sbsm_setup() {
   for (const auto e : menuDefs) {
     triggerNames.insert({e.trigger, e.label});
+    Menu *menu = new TriggerMenu(e.trigger, e.label, e.fsm, e.state);
+    Serial_printf("New menu item: 0x%x\n", menu);
+    e.menu.add(menu);
   }
 }
 
@@ -221,4 +233,15 @@ void sbsm_loop() {
   for (auto machine : stateMachines) {
     machine->run_machine();
   }
+}
+
+void TriggerMenu::onEnter() {
+  sbsm_trigger(m_trigger);
+}
+
+bool TriggerMenu::isChecked() {
+  if (!m_fsm || !m_state) {
+    return false;
+  }
+  return &m_fsm->get_current_state() == m_state;
 }

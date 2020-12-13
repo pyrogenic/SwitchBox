@@ -5,6 +5,7 @@
 #include "ABO.h"
 #include "Debounce.h"
 #include "DebugLine.h"
+#include "Memory.h"
 #include "Menu.h"
 #if RTC_ENABLED
 #include "RealTimeClock.h"
@@ -32,14 +33,10 @@
 #define PROGNAME "SwitchBox"
 #define VERSION "0.4.1"
 
-template <typename T> struct W { T value; };
-
 #define WHITE_OLED 1
 #define GREY_OLED 4
 #define COLOR_OLED 2
 #define COLOR_TFT 3
-
-#define DISPLAY_TYPE WHITE_OLED
 
 #define USE_ROTARY_INPUT 0
 #define USE_BUTTON_NAV 1
@@ -165,8 +162,8 @@ void hydra_setup() {
 }
 #endif
 
-#define SET_MENU_FONT()                      \
-  display.setFixedFont(ssd1306xled_font5x7); \
+#define SET_MENU_FONT()                    \
+  display.setFixedFont(free_calibri11x12); \
   display.setColor(COLOR_MENU_TEXT)
 
 #if DISPLAY_TYPE == COLOR_TFT
@@ -186,12 +183,22 @@ typedef decltype(COLOR_BLACK) PrimaryDisplayColor;
 typedef PrimaryDisplayEngine::TilerT PrimaryDisplayTiler;
 PrimaryDisplayEngine engine(display);
 
-CSS<PrimaryDisplayColor> menuStyle = {ssd1306xled_font5x7, 0, 0, 0, 0, 1, 1, 1, 1, COLOR_MENU_TEXT, COLOR_BLACK};
-PicoMenu<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> menu(menuStyle);
+CSS<PrimaryDisplayColor> menuStyle = {free_calibri11x12, 0, 0, 0, 0, 1, 1, 1, 1, COLOR_MENU_TEXT, COLOR_BLACK};
+PicoMenu<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> picoMenu(menuStyle);
 
-CSS<PrimaryDisplayColor> menuItemStyle = {ssd1306xled_font5x7, 1, 1, 1, 0, 2, 1, 2, 1, COLOR_MENU_TEXT, COLOR_BLACK};
+CSS<PrimaryDisplayColor> menuItemStyle = {free_calibri11x12, 1, 1, 1, 0, 2, 1, 2, 1, COLOR_MENU_TEXT, COLOR_BLACK};
 PicoMenuItem<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> item1("First menu item", menuItemStyle);
 PicoMenuItem<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> item3("Demo", menuItemStyle);
+
+Menu menu("main");
+namespace MainMenu {
+Menu input("input");
+}
+namespace InputMenu {
+Menu input("DAC");
+}
+void menu_setup() {
+}
 
 void engine_setup() {
   engine.setFrameRate(30);
@@ -210,17 +217,17 @@ void testmenu_setup() {
 
   engine.getCanvas().setFreeFont(free_calibri11x12);
   engine.getCanvas().setMode(CANVAS_MODE_TRANSPARENT);
-  menu.setPos({10, 10});
-  menu.setSize({display.width() - 20, display.height() - 20});
-  menu.add(item1);
-  menu.add(item3);
-  engine.insert(menu);
+  picoMenu.setPos({10, 10});
+  picoMenu.setSize({display.width() - 20u, display.height() - 20u});
+  picoMenu.add(item1);
+  picoMenu.add(item3);
+  engine.insert(picoMenu);
 
   engine.refresh();
 }
 
 void testmenu_loop() {
-  menu.down();
+  picoMenu.down();
 }
 
 #if USE_ROTARY_INPUT
@@ -297,6 +304,7 @@ void setup() {
   Serial.println(F("START " __FILE__));
   Serial.println(F(PROGNAME " Version " VERSION " built on " __DATE__));
 
+  memory_setup();
   // bool waiting = true;
   // while (waiting) {
   //   int c = Serial.read();
@@ -507,6 +515,7 @@ bool menuUpdate = true;
 uint32_t loopCount(0);
 
 void loop() {
+  memory_loop();
   engine_loop();
 
   auto dt = micros() - ts;
@@ -722,7 +731,7 @@ void loop() {
       display3.setColor(button.last ? BLACK : WHITE);
       char str[10] = {0};
       snprintf(str, 10, "%02x", b);
-      display3.setFixedFont(ssd1306xled_font5x7);
+      display3.setFixedFont(free_calibri11x12);
       display3.printFixed(rect.p1.x, rect.p1.y, str);
     }
 #endif

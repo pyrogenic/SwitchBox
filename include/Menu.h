@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DebugLine.h"
+#include "SwitchBox.h"
 #include <lcdgfx.h>
 #include <vector>
 
@@ -93,14 +94,14 @@ private:
  */
 template <class TDisplay, class TTiler, typename TColor> class PicoMenuItem : public NanoMenuItem<TTiler> {
 public:
-  typedef NanoMenuItem<TTiler> This;
+  typedef NanoMenuItem<TTiler> super;
   /**
    * Creates instance of test menu item
    *
    * @param name text of the item to display
    */
   PicoMenuItem(const char *name, CSS<TColor> css) : NanoMenuItem<TTiler>({0, 0}), m_name(name), m_css(css) {
-    This::setSize({
+    super::setSize({
         0,
         0,
     });
@@ -115,22 +116,15 @@ public:
       if (getDisplay()) {
         Serial_printf("PicoMenuItem.update: %s\n", m_name);
         auto font = getDisplay()->getFont();
-        if (!font) {
-          Serial_printf("  No font selected!\n", m_name);
-          return;
-        }
         lcduint_t height;
-        lcdint_t width = font->getTextSize(m_name, &height);
+        lcdint_t width = font.getTextSize(m_name, &height);
         lcdint_t paddedWidth = width + m_css.marginLeft + m_css.marginRight + m_css.padLeft + m_css.padRight;
         lcdint_t paddedHeight = height + m_css.marginTop + m_css.marginBottom + m_css.padTop + m_css.padBottom;
         Serial_printf(" -- width/padded: %d/%d height/padded: %d/%d\n", width, paddedWidth, height, paddedHeight);
-        This::resize({
+        super::resize({
             paddedWidth,
             paddedHeight,
         });
-        //   } else {
-        //     // At this point we don't know font to be used by a user
-        //     setSize({width(), (lcduint_t)8});
       }
     }
   }
@@ -141,13 +135,13 @@ public:
   void draw() override {
     auto canvas = this->getTiler().getCanvas();
     if (this->isFocused()) {
-      canvas.setMode(CANVAS_MODE_TRANSPARENT);
       canvas.setColor(this->m_css.fg);
       canvas.fillRect(borderRect(rect(), css()));
       canvas.setColor(this->m_css.bg);
+      canvas.setMode(CANVAS_MODE_TRANSPARENT);
     } else {
-      canvas.setMode(CANVAS_MODE_BASIC);
       canvas.setColor(this->m_css.fg);
+      canvas.setMode(CANVAS_MODE_BASIC);
     }
     canvas.printFixed(textLeft(), textTop(), m_name);
   }
@@ -164,20 +158,44 @@ protected:
 
 private:
   TDisplay *getDisplay() {
-    if (!This::hasTiler()) {
+    if (!super::hasTiler()) {
       return nullptr;
     }
-    TDisplay &display = This::getTiler().getDisplay();
+    TDisplay &display = super::getTiler().getDisplay();
     display.setFixedFont(m_css.font);
     return &display;
   }
 };
 
+enum ItemType {
+  kMT_none,
+  kMT_check,
+  kMT_radio,
+  kMT_menu,
+};
+
+#define MENU_CALLBACK(name) void (*name)()
+class Menu;
+
 class Menu {
 public:
-  Menu() : back(*this) {}
+  Menu(const char *name, ItemType type = kMT_none, MENU_CALLBACK(callback) = nullptr, Menu *back = nullptr) : m_name(name), m_type(type), m_callback(callback), m_back(back) {}
+
+  template <class TDisplay, class TTiler, typename TColor> void populate(PicoMenu<TDisplay, TTiler, TColor> &picoMenu);
+
+  const char *name() { return m_name; };
+  void add(Menu *menu);
+
+  Menu &enter();
+  Menu &back();
+
+  virtual void onEnter() {}
+  virtual bool isChecked() { return false; }
 
 private:
-  Menu &back;
-  std::vector<Menu> items;
+  const char *m_name;
+  ItemType m_type;
+  MENU_CALLBACK(m_callback);
+  Menu *m_back;
+  std::vector<Menu *> m_items;
 };

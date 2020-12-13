@@ -1,6 +1,11 @@
 #pragma once
 #include "AB.h"
 
+template <typename T> struct W {
+  T value;
+  operator T() { return value; }
+};
+
 // DS3231 in circuit?
 #define RTC_ENABLED 0
 
@@ -10,7 +15,7 @@
 // Multiple OLEDs in circuit?
 #define HYDRA_ENABLED 0
 
-// Multiple Arduinos communicating? 
+// Multiple Arduinos communicating?
 #define MULTICONTROLLER_ENABLED 0
 
 // 74165 in circuit?
