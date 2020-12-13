@@ -6,18 +6,24 @@
 #include "Debounce.h"
 #include "DebugLine.h"
 #include "Menu.h"
+#if RTC_ENABLED
 #include "RealTimeClock.h"
+#endif
 #include "RotaryEncoder.h"
 #include "SwitchBoxStateMachine.h"
+#if TEMPERATURE_ENABLED
 #include "Temperature.h"
+#endif
+#if HYDRA_ENABLED
 #include <Multi_OLED.h>
+#endif
+#if MULTICONTROLLER_ENABLED
 #include <SoftWire.h>
 #include <SoftwareSerial.h>
+#endif
 #include <Wire.h>
 #include <canvas/canvas_types.h>
 #include <lcdgfx.h>
-
-// #if defined(ESP32) || defined(ESP8266)
 
 #ifndef PSTR
 #define PSTR(A) A
@@ -28,34 +34,34 @@
 
 template <typename T> struct W { T value; };
 
-// 74165 in circuit?
-#define ABI_ENABLED 1
-// 74595 in circuit?
-#define ABO_ENABLED 1
-
-#define ABI_TEST 1
-#define ABO_TEST 1
-
 #define WHITE_OLED 1
+#define GREY_OLED 4
 #define COLOR_OLED 2
 #define COLOR_TFT 3
 
-#define DISPLAY_TYPE COLOR_TFT
+#define DISPLAY_TYPE WHITE_OLED
+
 #define USE_ROTARY_INPUT 0
 #define USE_BUTTON_NAV 1
 
 #define MENU_MODE_SMOOTH 1
 
-#if DISPLAY_TYPE == WHITE_OLED
-DisplaySSD1306_128x64_I2C display(-1);
-void display_setup() {
-  display.getInterface().setRotation(2);
-  display.getInterface().setOffset(2, 2);
-}
 #define COLOR_BLACK BLACK
 #define COLOR_RED WHITE
 #define COLOR_GREEN WHITE
 #define COLOR_BLUE WHITE
+#define COLOR_YELLOW WHITE
+#define COLOR_WHITE WHITE
+#define COLOR_MENU_TEXT WHITE
+
+#if DISPLAY_TYPE == WHITE_OLED
+DisplaySSD1306_128x64_I2C display(-1);
+void display_setup() {
+}
+#elif DISPLAY_TYPE == GREY_OLED
+DisplaySSD1327_128x128_I2C display(-1);
+void display_setup() {
+}
 #elif DISPLAY_TYPE == COLOR_OLED || DISPLAY_TYPE == COLOR_TFT
 #define SPI_FREQ 0
 SPlatformSpiConfig spiConfig = {-1, {SSD1331_CS}, SSD1331_DC, SPI_FREQ, -1, -1};
@@ -70,6 +76,13 @@ void display_setup() {
   display.getInterface().setOffset(2, 2);
 }
 #endif
+#undef COLOR_BLACK BLACK
+#undef COLOR_RED WHITE
+#undef COLOR_GREEN WHITE
+#undef COLOR_BLUE WHITE
+#undef COLOR_YELLOW
+#undef COLOR_WHITE
+#undef COLOR_MENU_TEXT
 #define COLOR_BLACK RGB_COLOR16(0, 0, 0)
 #define COLOR_RED RGB_COLOR16(0xFFFF, 0, 0)
 #define COLOR_GREEN RGB_COLOR16(0, 0xFFFF, 0)
@@ -111,6 +124,7 @@ uint32_t frequency;
 // #define SDA_2 A3
 // #define SDA_3 A2
 
+#if HYDRA_ENABLED
 #define RTC_ADDR 0x68
 #define DISPLAY_2_ADDR 0x3C
 #define DISPLAY_3_ADDR 0x3D
@@ -124,10 +138,7 @@ DisplaySSD1306_128x64_I2C display3(-1, i2cConfig3);
 // DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display3(-1, A1, A3, DISPLAY_3_ADDR, 1200);
 // DisplaySSD1306_128x64_CustomI2C<SoftWireI2C> display4(-1, SCL_3, SDA_3, DISPLAY_4_ADDR);
 
-#define HYDRA 0
 #define HYDRA_SEARCH 0
-
-#if HYDRA
 #include <Multi_BitBang.h>
 #include <Multi_OLED.h>
 
@@ -158,18 +169,29 @@ void hydra_setup() {
   display.setFixedFont(ssd1306xled_font5x7); \
   display.setColor(COLOR_MENU_TEXT)
 
-typedef NanoEngine16<DisplayST7735_128x128x16_SPI> PrimaryDisplayEngine;
-typedef typeof(COLOR_BLACK) PrimaryDisplayColor;
-typedef PrimaryDisplayEngine::TilerT PrimaryDisplayTiler;
+#if DISPLAY_TYPE == COLOR_TFT
+typedef DisplayST7735_128x128x16_SPI PrimaryDisplay;
+typedef NanoEngine16<PrimaryDisplay> PrimaryDisplayEngine;
+#elif DISPLAY_TYPE == WHITE_OLED
+typedef DisplaySSD1306_128x64_I2C PrimaryDisplay;
+typedef NanoEngine1<PrimaryDisplay> PrimaryDisplayEngine;
+#elif DISPLAY_TYPE == GREY_OLED
+typedef DisplaySSD1327_128x128_I2C PrimaryDisplay;
+typedef NanoEngine16<PrimaryDisplay> PrimaryDisplayEngine;
+#else
+#error not implemented
+#endif
 
+typedef decltype(COLOR_BLACK) PrimaryDisplayColor;
+typedef PrimaryDisplayEngine::TilerT PrimaryDisplayTiler;
 PrimaryDisplayEngine engine(display);
 
-CSS<PrimaryDisplayColor> menuStyle = {0, 0, 0, 0, 1, 1, 1, 1, COLOR_MENU_TEXT, COLOR_BLACK};
-PicoMenu<PrimaryDisplayTiler, PrimaryDisplayColor> menu(menuStyle);
+CSS<PrimaryDisplayColor> menuStyle = {ssd1306xled_font5x7, 0, 0, 0, 0, 1, 1, 1, 1, COLOR_MENU_TEXT, COLOR_BLACK};
+PicoMenu<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> menu(menuStyle);
 
-CSS<PrimaryDisplayColor> menuItemStyle = {1, 1, 1, 0, 2, 1, 2, 1, COLOR_MENU_TEXT, COLOR_BLACK};
-PicoMenuItem<PrimaryDisplayTiler, PrimaryDisplayColor> item1("First menu item", menuItemStyle);
-PicoMenuItem<PrimaryDisplayTiler, PrimaryDisplayColor> item3("Demo", menuItemStyle);
+CSS<PrimaryDisplayColor> menuItemStyle = {ssd1306xled_font5x7, 1, 1, 1, 0, 2, 1, 2, 1, COLOR_MENU_TEXT, COLOR_BLACK};
+PicoMenuItem<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> item1("First menu item", menuItemStyle);
+PicoMenuItem<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> item3("Demo", menuItemStyle);
 
 void engine_setup() {
   engine.setFrameRate(30);
@@ -198,6 +220,7 @@ void testmenu_setup() {
 }
 
 void testmenu_loop() {
+  menu.down();
 }
 
 #if USE_ROTARY_INPUT
@@ -209,14 +232,21 @@ ButtonState buttonDown = {kABIPinShiftRegister, kSinDown};
 ButtonState buttonEnter = {kABIPinShiftRegister, kSinEnter};
 #endif
 
+#if TEMPERATURE_ENABLED
 OneWire oneWire(ONE_WIRE_BUS);
 Temperature temperature(oneWire);
-RealTimeClock rtc;
+#endif
+
+#if MULTICONTROLLER_ENABLED
 // RX, TX
 SoftwareSerial ser(A6, A7);
+#endif
+
+#if RTC_ENABLED
+RealTimeClock rtc;
 
 void printRTCTemperature() {
-  // Serial_printf("%2d.%02d°\n", rtc.temp() / 100, rtc.temp() % 100);
+  Serial_printf("%2d.%02d°\n", rtc.temp() / 100, rtc.temp() % 100);
 }
 
 void printRTCTime(bool aDoRefresh = true) {
@@ -248,6 +278,7 @@ void printRTCTime(bool aDoRefresh = true) {
 }
 
 TimeFormat headerTimeFormat = new TimeFormat();
+#endif
 
 #if ABI_TEST
 W<ButtonState> abiTestButtons[24];
@@ -263,32 +294,40 @@ void setup() {
   Serial.begin(9600);
   while (!Serial)
     ; // delay for Leonardo
-
   Serial.println(F("START " __FILE__));
   Serial.println(F(PROGNAME " Version " VERSION " built on " __DATE__));
 
-  bool waiting = true;
-  while (waiting) {
-    int c = Serial.read();
-    if (c == ' ') {
-      waiting = false;
-    } else {
-      Serial.write(c);
-      delay(1000);
-    }
-  }
+  // bool waiting = true;
+  // while (waiting) {
+  //   int c = Serial.read();
+  //   if (c == ' ') {
+  //     waiting = false;
+  //   } else {
+  //     Serial.write(c);
+  //     delay(1000);
+  //   }
+  // }
 
+#if MULTICONTROLLER_ENABLED
   ser.begin(9600);
+#endif
 
   // Start the I2C Bus as Master
   Wire.begin();
 
+#if RTC_ENABLED
   rtc.setup();
-  temperature.setup();
+#endif
 
+#if TEMPERATURE_ENABLED
+  temperature.setup();
+#endif
+
+  display_setup();
   display.begin();
   display.clear();
 
+#if ABI_ENABLED
   ABInit abinit = {0};
   abinit.clk = SHIFT_CLK;
   abinit.data = SHIFT_IN_DATA;
@@ -296,18 +335,22 @@ void setup() {
   abinit.read = SHIFT_IN_READ;
   abinit.bytes = 3;
   abi_setup(abinit);
+#endif
 
+#if ABO_ENABLED
   ABOnit abonit = {0};
   abonit.clk = SHIFT_CLK;
   abonit.data = SHIFT_OUT_DATA;
   abonit.load = SHIFT_OUT_LATCH;
   abonit.bytes = 2;
   abo_setup(abonit);
+#endif
 
 #if ABI_TEST
   abi_test_setup();
 #endif
 
+#if ABI_ENABLED
 #if USE_ROTARY_INPUT
   rotaryState.pinA.pin = {kABIPinShiftRegister, kSinRotaryA};
   rotaryState.pinB.pin = {kABIPinShiftRegister, kSinRotaryB};
@@ -319,11 +362,7 @@ void setup() {
   debounce(buttonDown);
   debounce(buttonEnter);
 #endif
-
-  // debounce(buttonRed);
-  // debounce(buttonGreen);
-  // debounce(buttonBlue);
-  // debounce(buttonYellow);
+#endif
 
   sbsm_setup();
 
@@ -331,9 +370,6 @@ void setup() {
   //   menuItems[i] = (char *)calloc(64 + 1, sizeof(char));
   //   strcpy(menuItems[i], sbsm_trigger_name((Trigger)i));
   // }
-
-  display_setup();
-  display.clear();
 
   engine_setup();
   testmenu_setup();
@@ -349,6 +385,7 @@ void setup() {
   // Multi_OLEDWriteCommand2(0x81, ucContrast);
 
   // void extended_display_start() {
+#if HYDRA_ENABLED
   display2.begin();
   display2.clear();
   display2.setFreeFont(free_calibri11x12);
@@ -360,7 +397,6 @@ void setup() {
   display3.setFreeFont(free_calibri11x12);
   display3.setTextCursor(10, 0);
   display3.write("Display 3");
-
   // display4.begin();
   // display4.clear();
   // display4.setFreeFont(free_calibri11x12);
@@ -368,6 +404,7 @@ void setup() {
   // display4.write("Display 4");
 
   hydra_setup();
+#endif
 }
 
 int encoderPosCount = 0;
@@ -379,7 +416,9 @@ char lastLabel0[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel1[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel2[LABEL_STRING_BUFFER_SIZE] = {0};
 char lastLabel3[LABEL_STRING_BUFFER_SIZE] = {0};
+#if RTC_ENABLED
 char lastTime[TIME_STRING_BUFFER_SIZE] = {0};
+#endif
 
 #if HYDRA
 void hydra_loop() {
@@ -483,8 +522,6 @@ void loop() {
 #if ABI_ENABLED
   abi_loop();
 #endif
-
-  testmenu_loop();
 
   sbsm_loop();
 #if false
@@ -672,6 +709,7 @@ void loop() {
     }
   }
   if (anyChange) {
+#if HYDRA_ENABLED
     // display3.clear();
     auto stepX = display3.width() / 8;
     auto stepY = display3.height() / 3;
@@ -687,6 +725,7 @@ void loop() {
       display3.setFixedFont(ssd1306xled_font5x7);
       display3.printFixed(rect.p1.x, rect.p1.y, str);
     }
+#endif
   }
 #endif
 
@@ -708,9 +747,12 @@ void loop() {
   //   sbsm_trigger(kTriggerSelectOutputMonitor);
   // }
 
-  // dt = micros() - debug_ts;
-  // if (dt > DEBUG_INTERVAL) {
-  //   //Serial_printf("Tick %u: Avg Tick: %dµs\n", loopCount, (int)(avgTick));
+  dt = micros() - debug_ts;
+  if (dt > DEBUG_INTERVAL) {
+    // Serial_printf("Tick %u: Avg Tick: %dµs\n", loopCount, (int)(avgTick));
+    testmenu_loop();
+    debug_ts = micros();
+  }
 
   //   // abi_debug();
   //   // abo_debug();
