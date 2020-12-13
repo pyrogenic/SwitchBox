@@ -29,8 +29,8 @@ template <typename T> NanoRect borderRect(NanoRect rect, const CSS<T> &css) {
 template <typename T> NanoRect contentRect(NanoRect rect, const CSS<T> &css) {
   rect.p1.x += css.marginLeft + css.padLeft;
   rect.p1.y += css.marginTop + css.padTop;
-  rect.p2.x -= css.marginRight - css.padRight;
-  rect.p2.y -= css.marginBottom - css.padBottom;
+  rect.p2.x -= css.marginRight + css.padRight;
+  rect.p2.y -= css.marginBottom + css.padBottom;
   return rect;
 }
 
