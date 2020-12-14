@@ -42,26 +42,28 @@ template <class TDisplay, class TTiler, typename TColor> class PicoMenuItem;
  * Class implements menu, organized as the list.
  * Each item may have different width
  */
-template <class TDisplay, class TTiler, typename TColor> class PicoMenu : public NanoMenu<TTiler> {
+template <class TDisplay, class TTiler, typename TColor> class PicoMenu : public NanoMenu<TTiler, PicoMenuItem<TDisplay, TTiler, TColor>> {
 public:
-  using NanoMenu<TTiler, PicoMenuItem<TTiler, TTiler, TColor>>::NanoMenu;
-  PicoMenu(CSS<TColor> css) : NanoMenu<TTiler>(), m_css(css), m_dirty(true) {}
+  typedef NanoMenu<TTiler, PicoMenuItem<TDisplay, TTiler, TColor>> super;
+  typedef typename super::value_type value_type;
+  using super::NanoMenu;
+  PicoMenu(CSS<TColor> css) : super(), m_css(css), m_dirty(true) {}
 
   void update() override {
     if (m_dirty) {
       updateMenuItemsPosition();
     }
-    NanoMenu<TTiler>::update();
+    super::update();
   }
 
   /**
    * Draw all menu items in NanoEngine buffer
    */
   void draw() override {
-    auto canvas = NanoMenu<TTiler>::getTiler().getCanvas();
+    auto canvas = super::getTiler().getCanvas();
     canvas.setColor(this->m_css.fg);
     canvas.drawRect(borderRect(this->m_rect, m_css));
-    NanoMenu<TTiler>::draw();
+    super::draw();
   }
 
 protected:
@@ -71,7 +73,7 @@ protected:
     lcdint_t x = rect.p1.x;
     lcdint_t y = rect.p1.y;
     lcdint_t width = rect.width();
-    NanoObject<TTiler> *p = NanoMenu<TTiler>::getNext();
+    value_type *p = super::getNext();
     while (p) {
       Serial_printf(" x: %d y: %d\n", x, y);
       p->setPos({x, y});
@@ -197,7 +199,7 @@ class Menu {
 public:
   Menu(const char *name, ItemType type = kMT_none, MENU_CALLBACK(callback) = nullptr, Menu *back = nullptr) : m_name(name), m_type(type), m_callback(callback), m_back(back) {}
 
-  template <class TDisplay, class TTiler, typename TColor> void Menu::populate(PicoMenu<TDisplay, TTiler, TColor> &picoMenu, CSS<TColor> &menuItemStyle);
+  template <class TDisplay, class TTiler, typename TColor> void populate(PicoMenu<TDisplay, TTiler, TColor> &picoMenu, CSS<TColor> &menuItemStyle);
 
   const char *name() { return m_name; };
   void add(Menu *menu);

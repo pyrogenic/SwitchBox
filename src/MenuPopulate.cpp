@@ -2,7 +2,7 @@
 
 template <class TDisplay, class TTiler, typename TColor> void Menu::populate(PicoMenu<TDisplay, TTiler, TColor> &picoMenu, CSS<TColor> &menuItemStyle) {
   // picoMenu.add
-  PicoMenuItem<TDisplay, TTiler, TColor> *p = static_cast<PicoMenuItem<TDisplay, TTiler, TColor> *>(picoMenu.getNext());
+  PicoMenuItem<TDisplay, TTiler, TColor> *p = picoMenu.getNext();
   for (auto item : m_items) {
     if (!p) {
       p = new PicoMenuItem<TDisplay, TTiler, TColor>();

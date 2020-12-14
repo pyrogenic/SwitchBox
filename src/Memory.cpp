@@ -1,9 +1,9 @@
 #include "Memory.h"
 
-#include "DebugLine.h";
-#include <Arduino.h>;
+#include "DebugLine.h"
+#include <Arduino.h>
 
-typedef struct Record {
+struct Record {
   unsigned long ts;
   size_t largest_free_block;
 };
@@ -17,7 +17,21 @@ Record last;
 void memory_setup() {
   memory_largest_free_block(true);
   startup = last;
-  Serial_printf("[Memory] Boot: %db free\n", startup.largest_free_block);
+  byte *mem[8] = {0};
+  for (int i = 0; i < 8; ++i) {
+    mem[i] = (byte *)malloc(1);
+  }
+  size_t mash = 0;
+  for (int i = 0; i < 8; ++i) {
+    mash |= (size_t)mem[i];
+  }
+  size_t alignment;
+  for (alignment = 0; alignment < 8; ++alignment) {
+    if (mash & 1 << alignment) {
+      break;
+    }
+  }
+  Serial_printf("[Memory] Boot: %db free, alignment ~%d\n", startup.largest_free_block, alignment);
 }
 
 void memory_loop() {
