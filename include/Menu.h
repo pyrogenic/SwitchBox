@@ -3,6 +3,7 @@
 #include "DebugLine.h"
 #include "SwitchBox.h"
 #include <lcdgfx.h>
+#include <memory>
 #include <vector>
 
 template <typename TColor> struct CSS {
@@ -35,13 +36,15 @@ template <typename T> NanoRect contentRect(NanoRect rect, const CSS<T> &css) {
   return rect;
 }
 
+template <class TDisplay, class TTiler, typename TColor> class PicoMenuItem;
+
 /**
  * Class implements menu, organized as the list.
  * Each item may have different width
  */
 template <class TDisplay, class TTiler, typename TColor> class PicoMenu : public NanoMenu<TTiler> {
 public:
-  using NanoMenu<TTiler>::NanoMenu;
+  using NanoMenu<TTiler, PicoMenuItem<TTiler, TTiler, TColor>>::NanoMenu;
   PicoMenu(CSS<TColor> css) : NanoMenu<TTiler>(), m_css(css), m_dirty(true) {}
 
   void update() override {
@@ -86,6 +89,7 @@ protected:
 
 private:
   CSS<TColor> m_css;
+  CSS<TColor> m_itemCss;
   bool m_dirty;
 };
 
@@ -100,26 +104,40 @@ public:
    *
    * @param name text of the item to display
    */
-  PicoMenuItem(const char *name, CSS<TColor> css) : NanoMenuItem<TTiler>({0, 0}), m_name(name), m_css(css) {
+  PicoMenuItem() : NanoMenuItem<TTiler>({0, 0}), m_name(nullptr), m_css(nullptr) { markDirty(); }
+
+  void markDirty() {
     super::setSize({
         0,
         0,
     });
   }
 
+  void setName(const char *name) {
+    m_name = name;
+    markDirty();
+  }
+
+  void setCss(CSS<TColor> *css) {
+    m_css = css;
+    markDirty();
+  }
+
+  CSS<TColor> *css() { return m_css; }
+
   /**
    * Updates menu item state. Automatically resizes menu item if width is
    * not defined yet
    */
   void update() override {
-    if (rect().height() <= 1) {
+    if (rect().height() <= 1 && m_name) {
       if (getDisplay()) {
         Serial_printf("PicoMenuItem.update: %s\n", m_name);
         auto font = getDisplay()->getFont();
         lcduint_t height;
         lcdint_t width = font.getTextSize(m_name, &height);
-        lcdint_t paddedWidth = width + m_css.marginLeft + m_css.marginRight + m_css.padLeft + m_css.padRight;
-        lcdint_t paddedHeight = height + m_css.marginTop + m_css.marginBottom + m_css.padTop + m_css.padBottom;
+        lcdint_t paddedWidth = width + css()->marginLeft + css()->marginRight + css()->padLeft + css()->padRight;
+        lcdint_t paddedHeight = height + css()->marginTop + css()->marginBottom + css()->padTop + css()->padBottom;
         Serial_printf(" -- width/padded: %d/%d height/padded: %d/%d\n", width, paddedWidth, height, paddedHeight);
         super::resize({
             paddedWidth,
@@ -135,26 +153,24 @@ public:
   void draw() override {
     auto canvas = this->getTiler().getCanvas();
     if (this->isFocused()) {
-      canvas.setColor(this->m_css.fg);
-      canvas.fillRect(borderRect(rect(), css()));
-      canvas.setColor(this->m_css.bg);
+      canvas.setColor(css()->fg);
+      canvas.fillRect(borderRect(rect(), *css()));
+      canvas.setColor(css()->bg);
       canvas.setMode(CANVAS_MODE_TRANSPARENT);
     } else {
-      canvas.setColor(this->m_css.fg);
+      canvas.setColor(css()->fg);
       canvas.setMode(CANVAS_MODE_BASIC);
     }
-    canvas.printFixed(textLeft(), textTop(), m_name);
+    NanoRect content = contentRect(rect(), *css());
+    canvas.printFixed(content.p1.x, content.p1.y, m_name);
   }
 
   const NanoRect &rect() { return this->m_rect; }
-  lcdint_t textLeft() { return rect().p1.x + m_css.marginLeft + m_css.padLeft; }
-  lcdint_t textTop() { return rect().p1.y + m_css.marginTop + m_css.padTop; }
-  const CSS<TColor> &css() { return m_css; }
 
 protected:
   /** Menu item text */
   const char *m_name;
-  CSS<TColor> m_css;
+  CSS<TColor> *m_css;
 
 private:
   TDisplay *getDisplay() {
@@ -162,7 +178,7 @@ private:
       return nullptr;
     }
     TDisplay &display = super::getTiler().getDisplay();
-    display.setFreeFont(m_css.font);
+    display.setFreeFont(css()->font);
     return &display;
   }
 };
@@ -181,7 +197,7 @@ class Menu {
 public:
   Menu(const char *name, ItemType type = kMT_none, MENU_CALLBACK(callback) = nullptr, Menu *back = nullptr) : m_name(name), m_type(type), m_callback(callback), m_back(back) {}
 
-  template <class TDisplay, class TTiler, typename TColor> void populate(PicoMenu<TDisplay, TTiler, TColor> &picoMenu);
+  template <class TDisplay, class TTiler, typename TColor> void Menu::populate(PicoMenu<TDisplay, TTiler, TColor> &picoMenu, CSS<TColor> &menuItemStyle);
 
   const char *name() { return m_name; };
   void add(Menu *menu);

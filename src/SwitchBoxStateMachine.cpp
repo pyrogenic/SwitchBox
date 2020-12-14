@@ -214,10 +214,10 @@ Menu preampMenu("Preamp");
 Menu outputMenu("Output");
 
 MenuDef menuDefs[] = {
-    {inputMenu, kTrigger_input_next, "Next Input", nullptr, nullptr},
-    {inputMenu, kTrigger_input_digital, "Digital", &sbsm_input, &state_input_digital},
-    {inputMenu, kTrigger_input_analog, "Digital", &sbsm_input, &state_input_analog},
-    {inputMenu, kTrigger_input_aux, "Aux", &sbsm_input, &state_input_aux},
+    // {inputMenu, kTrigger_input_next, "Next Input", nullptr, nullptr},
+    // {inputMenu, kTrigger_input_digital, "Digital", &sbsm_input, &state_input_digital},
+    // {inputMenu, kTrigger_input_analog, "Digital", &sbsm_input, &state_input_analog},
+    // {inputMenu, kTrigger_input_aux, "Aux", &sbsm_input, &state_input_aux},
 };
 
 void sbsm_setup() {

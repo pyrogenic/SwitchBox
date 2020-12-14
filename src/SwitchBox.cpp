@@ -187,8 +187,8 @@ CSS<PrimaryDisplayColor> menuStyle = {free_calibri11x12, 0, 0, 0, 0, 1, 1, 1, 1,
 PicoMenu<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> picoMenu(menuStyle);
 
 CSS<PrimaryDisplayColor> menuItemStyle = {free_calibri11x12, 1, 1, 1, 0, 2, 1, 2, 1, COLOR_MENU_TEXT, COLOR_BLACK};
-PicoMenuItem<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> item1("First menu item", menuItemStyle);
-PicoMenuItem<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> item3("Demo", menuItemStyle);
+// PicoMenuItem<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> item1("First menu item", menuItemStyle);
+// PicoMenuItem<PrimaryDisplay, PrimaryDisplayTiler, PrimaryDisplayColor> item3("Demo", menuItemStyle);
 
 Menu menu("main");
 namespace MainMenu {
@@ -212,6 +212,12 @@ void engine_loop() {
   engine.display();
 }
 
+// This is how you avoid defining template bodies in the header
+// https://stackoverflow.com/a/36825508
+#include "MenuPopulate.cpp"
+
+Menu testMenu("test menu");
+namespace TestMenuItems {}
 void testmenu_setup() {
   // SET_MENU_FONT();
 
@@ -219,10 +225,9 @@ void testmenu_setup() {
   engine.getCanvas().setMode(CANVAS_MODE_TRANSPARENT);
   picoMenu.setPos({10, 10});
   picoMenu.setSize({display.width() - 20u, display.height() - 20u});
-  picoMenu.add(item1);
-  picoMenu.add(item3);
   engine.insert(picoMenu);
 
+  menu.populate(picoMenu, menuItemStyle);
   engine.refresh();
 }
 
