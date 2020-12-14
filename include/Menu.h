@@ -162,7 +162,7 @@ private:
       return nullptr;
     }
     TDisplay &display = super::getTiler().getDisplay();
-    display.setFixedFont(m_css.font);
+    display.setFreeFont(m_css.font);
     return &display;
   }
 };

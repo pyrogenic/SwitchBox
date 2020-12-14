@@ -331,9 +331,14 @@ void setup() {
   temperature.setup();
 #endif
 
-  display_setup();
   display.begin();
   display.clear();
+  display_setup();
+
+  display.setColor(COLOR_WHITE);
+  display.drawRect({0, 0, 10, 10});
+
+  delay(1000);
 
 #if ABI_ENABLED
   ABInit abinit = {0};
@@ -748,17 +753,8 @@ void loop() {
   abo_loop();
 #endif
 
-  // if (debounce(buttonRed) && buttonRed.value) {
-  // }
-
-  // if (debounce(buttonYellow) && buttonYellow.value) {
-  //   sbsm_trigger(kTriggerSelectInputAnalog);
-  //   sbsm_trigger(kTriggerSelectOutputMonitor);
-  // }
-
   dt = micros() - debug_ts;
   if (dt > DEBUG_INTERVAL) {
-    // Serial_printf("Tick %u: Avg Tick: %dµs\n", loopCount, (int)(avgTick));
     testmenu_loop();
     debug_ts = micros();
   }
