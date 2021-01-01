@@ -217,7 +217,9 @@ void engine_loop() {
 #include "MenuPopulate.cpp"
 
 Menu testMenu("test menu");
-namespace TestMenuItems {}
+namespace TestMenuItems {
+Menu testMenuItem1("menu item 1");
+}
 void testmenu_setup() {
   // SET_MENU_FONT();
 
@@ -226,6 +228,8 @@ void testmenu_setup() {
   picoMenu.setPos({10, 10});
   picoMenu.setSize({display.width() - 20u, display.height() - 20u});
   engine.insert(picoMenu);
+
+  testMenu.add(&TestMenuItems::testMenuItem1);
 
   menu.populate(picoMenu, menuItemStyle);
   engine.refresh();

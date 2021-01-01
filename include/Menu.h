@@ -68,6 +68,7 @@ public:
 
 protected:
   void updateMenuItemsPosition() override {
+    Serial_printf("updateMenuItemsPosition\n");
     m_dirty = false;
     auto rect = contentRect(this->m_rect, m_css);
     lcdint_t x = rect.p1.x;
@@ -118,6 +119,13 @@ public:
   void setName(const char *name) {
     m_name = name;
     markDirty();
+  }
+
+  const char *name() {
+    if (m_name) {
+      return m_name;
+    }
+    return "<no name>";
   }
 
   void setCss(CSS<TColor> *css) {
